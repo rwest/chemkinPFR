@@ -12,7 +12,7 @@
 ALL : conp.out
 
 # relative path to the CHEMKIN install directory
-CKROOT  = ../../..
+CKROOT  = /afs/athena.mit.edu/software/chemkin_v4.1.1/distrib/@sys
 
 # global CHEMKIN make directives
 include $(CKROOT)/include/chemkin_make_unix.inc

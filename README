@@ -1,0 +1,51 @@
+
+                                                           alexp 3/23/10
+
+Files conp_make.inc and conp_unix.mak have been modified to allow users
+to compile the conp example outside the CHEMKIN software tree which is
+read-only to users; other examples will need similarly modified .inc
+and .mak files. You also need to use g77 as FORTRAN compiler, as gfortran
+is incompatible with CHEMKIN for some reason. A suitable 32 bit g77 is in the
+gcc-3.4 locker. You will most likely need to install your own 64 bit g77
+for 64 bit Linux; a 3.4.x release will most likely work best.
+
+To run this example:
+
+1. Copy files in the 
+
+/afs/athena.mit.edu/software/chemkin_v4.1.1/distrib/samples/sample_apps_f77/conp
+
+directory to a location where you have write permission.
+
+2. Add to the LD_LIBRARY_PATH environment variable:
+
+Linux 32:
+
+/mit/chemkin_v4.1.1/lib
+/afs/athena.mit.edu/software/chemkin_v4.1.1/distrib/chemkin41_linux9/bin 
+
+Linux 64:
+
+/mit/chemkin_v4.1.1/lib
+/mit/chemkin_v4.1.1/distrib/chemkin41_linuxx8664/bin 
+
+Sun:
+
+/afs/athena.mit.edu/software/chemkin_v4.1.1/distrib/chemkin41_sun/bin
+/mit/sunsoft_v12/SUNWspro/libdynamic/v9 
+
+3. Add . to $PATH.
+
+For example, for Linux 32:
+
+setenv LD_LIBRARY_PATH /usr/athena/bin:/afs/athena.mit.edu/software/chemkin_v4.1.1/distrib/chemkin41_linux9/bin
+
+export PATH=.:$PATH
+
+add -f gcc-3.4 (Linux 32 only)
+
+3. In the location in step 1, type:
+
+make -f conp_unix.mak
+
+
