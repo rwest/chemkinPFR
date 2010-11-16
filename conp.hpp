@@ -15,6 +15,8 @@
 #define __CONP_H__
 
 // C++ function prototypes
+int resetFixedMoleFractions( int iSpeciesCount, 
+							double *dMoleFractions, double *dFixedMoleFractions );
 int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 			 int iSpeciesCount, int iStringLength,
 			 char *sSpeciesNames, double *dMoleFractions);
@@ -26,7 +28,7 @@ int cpinp (char *sOutputfileName, int iOutputfileUnit,
            char *sInputfileName,
            int *iCKwork, double *dCKwork,
            int iSpeciesCount, int iStringLength,
-           char *sSpeciesNames, double *dMoleFractions,
+           char *sSpeciesNames, double *dMoleFractions, double *dFixedMoleFractions,
            double &dPres, double &dTemp, double &dTend, double &dTdelta);
 int cpout (char *sOutputfileName, int iOutputfileUnit,
            int *iCKwork, double *dCKwork, double *dSolution,

@@ -93,17 +93,21 @@ int main()
     // problem parameters
     double dPres=0.0;  double dTemp=0.0;
     double *dMoleFractions = new double[ iSpeciesCount ];
-    for (int i=0; i<iSpeciesCount; i++) dMoleFractions[i] = 0.0;
+	double *dFixedMoleFractions = new double[ iSpeciesCount ];
+    for (int i=0; i<iSpeciesCount; i++) {
+		dMoleFractions[i] = 0.0;
+		dFixedMoleFractions[i] = 0.0;
+	}
     double dTend=0.0; double dTdelta=0.0;
     // initialization from input file
     if ( iFlag = cpinp (sOutputfileName, iOutputfileUnit,
                         sInputfileName, iCKwork, dCKwork,
                         iSpeciesCount, iStringLength,
-                        sSpeciesNames, dMoleFractions,
+                        sSpeciesNames, dMoleFractions, dFixedMoleFractions,
                         dPres, dTemp, dTend, dTdelta) )
     {  CCCLOS (sOutputfileName);
        delete [] iCKwork; delete [] dCKwork;  delete [] sCKwork;
-       delete [] sSpeciesNames; delete [] dMoleFractions;
+		delete [] sSpeciesNames; delete [] dMoleFractions; delete [] dFixedMoleFractions;
        return iFlag;
     }
 
@@ -144,10 +148,14 @@ int main()
        iFlag = cpout (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
                       dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
                       iStringLength, dTemp, dTlast);
+	   // reset the amounts of major species in the dMoleFractions array.
+		resetFixedMoleFractions( iSpeciesCount, dMoleFractions, dFixedMoleFractions );
+		
 	   // reset the amount of N2 in the dMoleFractions array.
 	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit,
 						iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
-	   //CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
+	   // store the updated mole fractions.
+	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
     }
 
     CFMESS (sOutputfileName,(char *)"END OF INTEGRATION...");
@@ -224,7 +232,6 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 		else {
 			dTotal = dTotal + dMoleFractions[i];
 		}
-		i++;
 	}
 	if (iFound < 0) {
 		iFlag = 1; fprintf(fpOutfile, "%s\n", "Couldn't find N2 in species list.");
@@ -250,11 +257,34 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 	return iFlag;
 }
 
+
+int resetFixedMoleFractions( int iSpeciesCount, 
+							double *dMoleFractions, double *dFixedMoleFractions )
+{
+	/*  
+	 This function updates dMoleFractions with entries from dFixedMoleFractions that are > 0.
+	 */
+	int iFlag=0;
+	// convert current mass fractions to mole fractions
+	//CKYTX(dSolution+1, iCKwork, dCKwork, dMoleFractions);  // get mole fractions
+	
+	int i;
+	for (i=0; i < iSpeciesCount; i++) {
+		if (dFixedMoleFractions[i] > 0) {
+			dMoleFractions[i] = dFixedMoleFractions[i];
+		}
+	}
+	//CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);  // get mass fractions, i.e set mole fractions
+	return iFlag;
+}
+
+
+
 int cpinp (char *sOutputfileName, int iOutputfileUnit,
            char *sInputfileName,
            int *iCKwork, double *dCKwork,
            int iSpeciesCount, int iStringLength,
-           char *sSpeciesNames, double *dMoleFractions,
+           char *sSpeciesNames, double *dMoleFractions, double *dFixedMoleFractions,
            double &dPres, double &dTemp, double &dTend, double &dTdelta)
 {  int iFlag=0;
    FILE *fpInfile  = stdin;
@@ -306,6 +336,7 @@ int cpinp (char *sOutputfileName, int iOutputfileUnit,
              if (strcmp(sReactant, sName)==0) {
                 iFound = i;
                 dMoleFractions[iFound] = dValue;
+				 dFixedMoleFractions[iFound] = dValue;
              }
              i++;
          }
@@ -320,9 +351,12 @@ int cpinp (char *sOutputfileName, int iOutputfileUnit,
    // Reset the N2 mole fraction to make the total equal 1.0
 	iFlag = resetN2 (sOutputfileName, iOutputfileUnit, 
 					 iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
+	iFlag = resetN2 (sOutputfileName, iOutputfileUnit, 
+					 iSpeciesCount, iStringLength, sSpeciesNames, dFixedMoleFractions);
 
    // Normalize the mole fractions
    CKNORM(dMoleFractions, iSpeciesCount);
+	CKNORM(dFixedMoleFractions, iSpeciesCount);
 
    // Final time and print interval
    fprintf(fpOutfile, "\n%s\n", "INPUT FINAL TIME AND DT");
