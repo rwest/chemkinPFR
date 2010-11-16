@@ -145,7 +145,7 @@ int main()
                       dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
                       iStringLength, dTemp, dTlast);
 	   // reset the amount of N2 in the dMoleFractions array.
-	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork, dSolution,
+	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit,
 						iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
 	   //CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
     }
@@ -184,7 +184,6 @@ int cpsize (char *sOutputfileName, int iOutputfileUnit,
 }
 
 int resetN2 (char *sOutputfileName, int iOutputfileUnit,
-			 int *iCKwork, double *dCKwork, double *dSolution,
 			 int iSpeciesCount, int iStringLength,
 			 char *sSpeciesNames, double *dMoleFractions)
 {
@@ -317,6 +316,10 @@ int cpinp (char *sOutputfileName, int iOutputfileUnit,
    }
    fprintf(fpOutfile, "\n");
    delete [] sName;
+	
+   // Reset the N2 mole fraction to make the total equal 1.0
+	iFlag = resetN2 (sOutputfileName, iOutputfileUnit, 
+					 iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
 
    // Normalize the mole fractions
    CKNORM(dMoleFractions, iSpeciesCount);
