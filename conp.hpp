@@ -16,7 +16,7 @@
 
 // C++ function prototypes
 int resetN2 (char *sOutputfileName, int iOutputfileUnit,
-			 int *iCKwork, double *dCKwork,
+			 int *iCKwork, double *dCKwork, double *dSolution,
 			 int iSpeciesCount, int iStringLength,
 			 char *sSpeciesNames, double *dMoleFractions);
 int cpsize (char *sOutputfileName, int iOutputfileUnit,

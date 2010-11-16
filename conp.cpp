@@ -144,9 +144,10 @@ int main()
        iFlag = cpout (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
                       dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
                       iStringLength, dTemp, dTlast);
-		
-	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork, iSpeciesCount, 
-						iStringLength, sSpeciesNames, dMoleFractions);
+	   // reset the amount of N2 in the dMoleFractions array.
+	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork, dSolution,
+						iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
+	   //CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
     }
 
     CFMESS (sOutputfileName,(char *)"END OF INTEGRATION...");
@@ -183,10 +184,21 @@ int cpsize (char *sOutputfileName, int iOutputfileUnit,
 }
 
 int resetN2 (char *sOutputfileName, int iOutputfileUnit,
-			 int *iCKwork, double *dCKwork,
+			 int *iCKwork, double *dCKwork, double *dSolution,
 			 int iSpeciesCount, int iStringLength,
 			 char *sSpeciesNames, double *dMoleFractions)
-{	int iFlag=0;
+{
+	/*  
+	 This function takes the vector dMoleFractions (which may or may not sum to 1.0)
+	 and replaces the N2 entry with (1-sum(others)). It does not update the chemkin
+	 simulation work arrays - you must do this yourself. e.g. call
+	   CKYTX(dSolution+1, iCKwork, dCKwork, dMoleFractions);
+	 before calling this function and 
+	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
+	 after calling this function.
+	 
+	 */
+	int iFlag=0;
 	FILE *fpOutfile = stdout;
 	if (!strstr(sOutputfileName,"stdout") && iOutputfileUnit != 6) {
 		// switch from Fortran to C++ formatted output file
@@ -194,21 +206,24 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 		fpOutfile = fopen(sOutputfileName, "a");
 	}
 	
-	// Initial non-zero mole fractions
+	// convert current mass fractions to mole fractions
+	//CKYTX(dSolution+1, iCKwork, dCKwork, dMoleFractions);  // get mole fractions
+	
 	char *sReactant= new char [ iStringLength + 1 ];
 	char *sName    = new char [ iStringLength + 1 ];
 	int i,iFound; double dTotal;
 	
+	dTotal = 0;
 	sReactant = "N2";
 	
-	i=0; iFound=-1;
-	while (i<iSpeciesCount) {
+	iFound=-1;
+	for (i=0; i < iSpeciesCount; i++) {
 		sscanf(sSpeciesNames+(i*iStringLength), "%s", sName);
 		if (strcmp(sReactant, sName)==0) {
 			iFound = i;
 		}
 		else {
-			dTotal += dMoleFractions[iFound];
+			dTotal = dTotal + dMoleFractions[i];
 		}
 		i++;
 	}
@@ -218,7 +233,9 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 	else {
 		dMoleFractions[iFound] = 1.0 - dTotal;
 	}
-	fprintf(fpOutfile, "%s %10.3e\n", "Resetting N2 mole fraction to",(1.0 - dTotal));
+	fprintf(fpOutfile, "%s %10.3e\n", "N2 mole fraction should equal ",(1.0 - dTotal));
+	
+	// CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);  // get mass fractions, i.e set mole fractions
 	
 	delete [] sName;
 	
