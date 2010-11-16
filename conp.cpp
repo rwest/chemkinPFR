@@ -144,6 +144,9 @@ int main()
        iFlag = cpout (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
                       dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
                       iStringLength, dTemp, dTlast);
+		
+	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork, iSpeciesCount, 
+						iStringLength, sSpeciesNames, dMoleFractions);
     }
 
     CFMESS (sOutputfileName,(char *)"END OF INTEGRATION...");
@@ -177,6 +180,58 @@ int cpsize (char *sOutputfileName, int iOutputfileUnit,
       CCCLOS (sGasLinkfileName);
    }
    return iFlag;
+}
+
+int resetN2 (char *sOutputfileName, int iOutputfileUnit,
+			 int *iCKwork, double *dCKwork,
+			 int iSpeciesCount, int iStringLength,
+			 char *sSpeciesNames, double *dMoleFractions)
+{	int iFlag=0;
+	FILE *fpOutfile = stdout;
+	if (!strstr(sOutputfileName,"stdout") && iOutputfileUnit != 6) {
+		// switch from Fortran to C++ formatted output file
+		CCCLOS(sOutputfileName);
+		fpOutfile = fopen(sOutputfileName, "a");
+	}
+	
+	// Initial non-zero mole fractions
+	char *sReactant= new char [ iStringLength + 1 ];
+	char *sName    = new char [ iStringLength + 1 ];
+	int i,iFound; double dTotal;
+	
+	sReactant = "N2";
+	
+	i=0; iFound=-1;
+	while (i<iSpeciesCount) {
+		sscanf(sSpeciesNames+(i*iStringLength), "%s", sName);
+		if (strcmp(sReactant, sName)==0) {
+			iFound = i;
+		}
+		else {
+			dTotal += dMoleFractions[iFound];
+		}
+		i++;
+	}
+	if (iFound < 0) {
+		iFlag = 1; fprintf(fpOutfile, "%s\n", "Couldn't find N2 in species list.");
+	}
+	else {
+		dMoleFractions[iFound] = 1.0 - dTotal;
+	}
+	fprintf(fpOutfile, "%s %10.3e\n", "Resetting N2 mole fraction to",(1.0 - dTotal));
+	
+	delete [] sName;
+	
+	if (fpOutfile != stdout) {                   // switch to Fortran output
+		fflush(fpOutfile); fclose(fpOutfile);
+		int ifFlag=0;
+		CCOPEN (sOutputfileName,
+				(char *)"FORMATTED",
+				(char *)"UNKNOWN", iOutputfileUnit, ifFlag);
+		if (ifFlag==0) ifFlag = CFEND (sOutputfileName); // go to end of output file
+		return max(iFlag,ifFlag);
+	}
+	return iFlag;
 }
 
 int cpinp (char *sOutputfileName, int iOutputfileUnit,
