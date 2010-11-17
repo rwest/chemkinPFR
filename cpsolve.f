@@ -9,7 +9,7 @@ C***********************************************************************END-HDR
       SUBROUTINE CPSOLVE(NKK, NNP, NNWT, NNH, NNWDOT, NEQ, Z, TT1,
      1                   TT2, ITOL, RTOL, ATOL, ITASK, IOPT, RVODE,
      2                   LRW, IVODE, LIW, MF, RWORK, IWORK,
-     3                   LOUT, ISTATE)
+     3                   LOUT, ISTATE, FFIXEDMF)
 C
 C     Interface to DVODE and FUN from the C++ driver program
 C
@@ -20,13 +20,14 @@ C*****INCLUDE-IF precision_single
 C      IMPLICIT REAL (A-H, O-Z), INTEGER (I-N)
 C*****END INCLUDE-IF precision_single
       DIMENSION RVODE(LRW),IVODE(LIW),Z(NEQ),RWORK(*),IWORK(*)
-      COMMON /ICONS/ KK, NP, NWT, NH, NWDOT
+      COMMON /ICONS/ FIXEDMF(20), KK, NP, NWT, NH, NWDOT
       EXTERNAL FUN
       KK   = NKK
       NP   = NNP
       NWT  = NNWT
       NH   = NNH
       NWDOT= NNWDOT
+      FIXEDMF = FFIXEDMF
 C*****INCLUDE-IF precision_single
 C      CALL SVODE
 C*****END INCLUDE-IF precision_single
@@ -50,7 +51,7 @@ C*****INCLUDE-IF precision_single
 C      IMPLICIT REAL (A-H,O-Z), INTEGER(I-N)
 C*****END INCLUDE-IF precision_single
 C
-      COMMON /ICONS/ KK, NP, NWT, NH, NWDOT
+      COMMON /ICONS/ FIXEDMF(20), KK, NP, NWT, NH, NWDOT
       DIMENSION Z(*), ZP(*), RPAR(*), IPAR(*)
 C
 C     Variables in Z are:  Z(1)   = T
@@ -58,20 +59,28 @@ C                          Z(K+1) = Y(K)
 C
 C     Call CHEMKIN subroutines
 C
+C Returns the mass density of the gas mixture given pressure, temperature(s) and mass fractions. RHO
       CALL CKRHOY (RPAR(NP), Z(1), Z(2), IPAR, RPAR, RHO)
+C Returns the mean specific heat at constant pressure. CPB
       CALL CKCPBS (Z(1), Z(2), IPAR, RPAR, CPB)
+C Returns the molar production rates of the species given pressure, temperature(s) and mass fractions. WDOT(*)
       CALL CKWYP  (RPAR(NP), Z(1), Z(2), IPAR, RPAR, RPAR(NWDOT))
-      CALL CKHMS  (Z(1), IPAR, RPAR, RPAR(NH))
+C Returns the enthalpies in mass units. HMS(*)
+C isothermal so following line commented out:
+C      CALL CKHMS  (Z(1), IPAR, RPAR, RPAR(NH))
 C
 C     Form governing equation
 C
       SUM = 0.0
       DO 100 K = 1, KK
-         H    = RPAR(NH    + K - 1)
+C         H    = RPAR(NH    + K - 1)
          WDOT = RPAR(NWDOT + K - 1)
+C For species which have a nonzero FIXEDMF we set the creation rate to zero
+         IF (FIXEDMF(K) .GE. 0.0) WDOT = 0.0
          WT   = RPAR(NWT   + K - 1)
          ZP(K+1) = WDOT * WT / RHO
-         SUM = SUM + H * WDOT * WT
+C isothermal so following line commented out:
+C         SUM = SUM + H * WDOT * WT
  100  CONTINUE
       ZP(1) = -SUM / (RHO*CPB)
 C

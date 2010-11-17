@@ -143,7 +143,7 @@ int main()
                iEquationCount, dSolution, dTstart, dTlast, iItol, dRtol,
                dAtol, iTask, iOpt, dODEwork, iODEsizeD,
                iODEwork, iODEsizeI, iMethodFlag, dCKwork, iCKwork,
-               iOutputfileUnit, iState);
+               iOutputfileUnit, iState, dFixedMoleFractions);
        // append the current solution to the Fortran output file
        iFlag = cpout (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
                       dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
