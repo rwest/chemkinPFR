@@ -122,7 +122,7 @@ int main()
     LUNSAV(iOutputfileUnit, bVprint);
 
     // ODE solver work arrays
-    int     iODEsizeI = iEquationCount + 30;
+    int     iODEsizeI = 2*iEquationCount + 30;
     int     iODEsizeD = 22 + 9*iEquationCount +
                         (2*iEquationCount)*(2*iEquationCount);
     int    *iODEwork  = new int[ iODEsizeI ];
@@ -143,7 +143,7 @@ int main()
                iEquationCount, dSolution, dTstart, dTlast, iItol, dRtol,
                dAtol, iTask, iOpt, dODEwork, iODEsizeD,
                iODEwork, iODEsizeI, iMethodFlag, dCKwork, iCKwork,
-               iOutputfileUnit, iState, dFixedMoleFractions);
+               iOutputfileUnit, iState);
        // append the current solution to the Fortran output file
        iFlag = cpout (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
                       dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
