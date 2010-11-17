@@ -143,7 +143,7 @@ int main()
                iEquationCount, dSolution, dTstart, dTlast, iItol, dRtol,
                dAtol, iTask, iOpt, dODEwork, iODEsizeD,
                iODEwork, iODEsizeI, iMethodFlag, dCKwork, iCKwork,
-               iOutputfileUnit, iState);
+               iOutputfileUnit, iState, dFixedMoleFractions);
        // append the current solution to the Fortran output file
        iFlag = cpout (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
                       dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
@@ -157,7 +157,7 @@ int main()
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
 		
 	  // increase the next step size
-		if (dTdelta<0.005) dTdelta *= 2;
+		if (dTdelta<0.05) dTdelta *= 2;
     }
 
     CFMESS (sOutputfileName,(char *)"END OF INTEGRATION...");
