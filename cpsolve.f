@@ -30,11 +30,11 @@ C*****END INCLUDE-IF precision_single
       NWDOT= NNWDOT
       
 C Store the fixed species
-C FIRST SET THEM ALL TO ZERO
+C FIRST SET THEM ALL INDICES ZERO
       DO 10 K = 1, 128
         IFIXEDMF(K) = 0
  10   CONTINUE
-C THEN STORE 
+C THEN STORE INDICES OF THOSE SPECIES THAT SHOULD BE FIXED
       J = 1
       DO 20 K = 1, KK
         IF (FFIXEDMF(K) .NE. 0.0) THEN
@@ -42,6 +42,11 @@ C THEN STORE
             J = J + 1
         END IF
  20   CONTINUE
+ 
+C      WRITE (LOUT,*) 'These species held constant: '
+C      DO 30 K = 1, 128
+C        WRITE(LOUT,*) IFIXEDMF(K)
+C 30   CONTINUE
       
 C*****INCLUDE-IF precision_single
 C      CALL SVODE
@@ -98,8 +103,14 @@ C         SUM = SUM + H * WDOT * WT
 
 C For species which have a nonzero FIXEDMF we set the creation rate to zero
       DO 200 K = 1, 128
-         IF (IFIXEDMF(K) .NE. 0) ZP(IFIXEDMF(K)+1) = 0.0
+         J = IFIXEDMF(K)
+         IF (J .NE. 0) THEN
+           ZP(J+1) = 0.0
+         ELSE 
+           GOTO 201
+         END IF
  200  CONTINUE
+ 201  CONTINUE
       
 C      ZP(1) = -SUM / (RHO*CPB)
       ZP(1) = 0.0
