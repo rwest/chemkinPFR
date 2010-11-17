@@ -241,7 +241,7 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 	else {
 		dMoleFractions[iFound] = 1.0 - dTotal;
 	}
-	fprintf(fpOutfile, "%s %10.3e\n", "N2 mole fraction should equal ",(1.0 - dTotal));
+	//fprintf(fpOutfile, "%s %10.3e\n", "N2 mole fraction should equal ",(1.0 - dTotal));
 	
 	// CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);  // get mass fractions, i.e set mole fractions
 	
@@ -388,32 +388,27 @@ int cpout (char *sOutputfileName, int iOutputfileUnit,
       fpOutfile = fopen(sOutputfileName, "a");
    }
 
-   int i, iNcol=7, iCol = 3, iLine=1;
+   int i ;
    if (dTime == 0.0) {           // print column headings
-      fprintf(fpOutfile, "\n%8s  %11s   ", "T(SEC)", "TMP(K)");
+      fprintf(fpOutfile, "\n%8s\t%11s\t", "T(SEC)", "TMP(K)");
       char *sName    = new char [ iStringLength + 1 ];
       for (i=0; i < iSpeciesCount; i++) {
-         sscanf(sSpeciesNames+(i*iStringLength), "%16s  ", sName);
-         if (iCol==3 && iLine>1) fprintf(fpOutfile, "%24s", " ");
-         fprintf(fpOutfile, "%10s  ", sName);
-         if (++iCol > iNcol || i+1 == iSpeciesCount)
-             { iCol=3; iLine++; fprintf(fpOutfile,"\n"); }
+         sscanf(sSpeciesNames+(i*iStringLength), "%s", sName);
+         fprintf(fpOutfile, "%s\t", sName);
       }
       delete [] sName;
+	  fprintf(fpOutfile,"\n");	
    }
 
    // convert current mass fractions to mole fractions
    CKYTX(dSolution+1, iCKwork, dCKwork, dMoleFractions);
    // print time, temperature, mole fractions
    dTemp = dSolution[0];
-   fprintf(fpOutfile, "%10.3e  %10.3e  ", dTime, dTemp);
-   iCol = 3; iLine = 1;
+   fprintf(fpOutfile, "%10.3e\t%10.3e\t", dTime, dTemp);
    for (i=0; i < iSpeciesCount; i++) {
-       if (iCol==3 && iLine>1) fprintf(fpOutfile, "%24s", " ");
-       fprintf(fpOutfile, "%10.3e  ", dMoleFractions[i]);
-       if (++iCol > iNcol || i+1 == iSpeciesCount)
-          { iCol=3; iLine++; fprintf(fpOutfile,"\n"); }
+       fprintf(fpOutfile, "%10.3e\t", dMoleFractions[i]);
    }
+   fprintf(fpOutfile,"\n");	
    fflush(fpOutfile);
 
    int iFlag = 0;
