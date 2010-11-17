@@ -12,7 +12,30 @@
 #
 # dependencies
 #
-CONP_OBJS = cpsolve$(OBJECT)
+
+SLATEC_OBJS = \
+ slatec/src/dqform$(OBJECT)     \
+ slatec/src/dqrfac$(OBJECT)    \
+ slatec/src/i1mach$(OBJECT)    \
+ slatec/src/d1mach$(OBJECT)    \
+ slatec/src/d1mpyq$(OBJECT)    \
+ slatec/src/d1updt$(OBJECT)    \
+ slatec/src/ddoglg$(OBJECT)    \
+ slatec/src/denorm$(OBJECT)    \
+ slatec/src/dfdjc1$(OBJECT)    \
+ slatec/src/dnsq$(OBJECT)      \
+ slatec/src/dnsqe$(OBJECT)     
+# already defined in chemkin_v4.1.1/distrib/@sys/lib/chemkin_public.a :
+# slatec/src/j4save$(OBJECT)    \
+# slatec/src/fdump$(OBJECT)     \
+# slatec/src/xercnt$(OBJECT)    \
+# slatec/src/xerhlt$(OBJECT)    \
+# slatec/src/xermsg$(OBJECT)    \
+# slatec/src/xerprn$(OBJECT)    \
+# slatec/src/xersve$(OBJECT)    \
+# slatec/src/xgetua$(OBJECT)    \
+
+CONP_OBJS = cpsolve$(OBJECT) $(SLATEC_OBJS)
 
 conp$(OBJECT) : conp.cpp
 	$(CXX) $(CPPFLAGS) -c conp.cpp $(CPPF77FLAGS)
