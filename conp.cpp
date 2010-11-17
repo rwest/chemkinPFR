@@ -161,6 +161,13 @@ int main()
     }
 
     CFMESS (sOutputfileName,(char *)"END OF INTEGRATION...");
+	
+	// append the final solution to the Fortran output file
+	iFlag = cpoutend (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
+				   dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
+				   iStringLength, dTemp, dTlast);
+	CFMESS (sOutputfileName,(char *)"CALCULATION COMPLETE");
+	
     CCCLOS (sOutputfileName);
     CKDONE (iCKwork, dCKwork);
     //delete [] iCKwork; delete [] dCKwork; delete [] sCKwork;
@@ -424,6 +431,53 @@ int cpout (char *sOutputfileName, int iOutputfileUnit,
       fclose (fpOutfile);
    }
    return iFlag;
+}
+
+
+int cpoutend (char *sOutputfileName, int iOutputfileUnit,
+           int *iCKwork, double *dCKwork, double *dSolution,
+           int iSpeciesCount, char *sSpeciesNames, double *dMoleFractions,
+           int iStringLength, double dTemp, double dTime)
+{
+	/*
+	 Print out the output at the very end, 
+	 formatted as a list of species and mole fractions
+	*/
+	FILE *fpOutfile = stdout;
+	if (iOutputfileUnit!=6 ) {  // switch from Fortran to C++ file
+		CCCLOS(sOutputfileName);
+		fpOutfile = fopen(sOutputfileName, "a");
+	}
+	int i ;
+	// print column headings
+	dTemp = dSolution[0];
+	fprintf(fpOutfile, "After %.2e seconds at %.2e Kelvin, the final mole fractions are:\n",
+			dTime, dTemp
+			);
+	fprintf(fpOutfile, "\n%s\t%s\n", "SPECIES", "MOLE FRACTION");
+	// convert current mass fractions to mole fractions
+	CKYTX(dSolution+1, iCKwork, dCKwork, dMoleFractions);
+	// print species names and mole fractions
+	char *sName    = new char [ iStringLength + 1 ];
+	for (i=0; i < iSpeciesCount; i++) {
+		sscanf(sSpeciesNames+(i*iStringLength), "%s", sName);
+		fprintf(fpOutfile, "%s\t%10.3e\n", sName, dMoleFractions[i]);
+	}
+	delete [] sName;	
+	fflush(fpOutfile);
+	int iFlag = 0;
+	if (fpOutfile != stdout) {    // switch back to Fortran output
+		CCOPEN (sOutputfileName,
+				(char *)"FORMATTED",
+				(char *)"UNKNOWN", iOutputfileUnit, iFlag);
+		if (iFlag==0) {
+			iFlag = CFEND (sOutputfileName);   // go to end of file
+			if (iFlag != 0) fprintf(fpOutfile,"\n%s\n","Error re-reading output file"); }
+		else
+			fprintf(fpOutfile,"\n%s\n","Error re-opening output file");
+		fclose (fpOutfile);
+	}
+	return iFlag;
 }
 
 

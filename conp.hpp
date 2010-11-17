@@ -34,6 +34,10 @@ int cpout (char *sOutputfileName, int iOutputfileUnit,
            int *iCKwork, double *dCKwork, double *dSolution,
            int iSpeciesCount, char *sSpeciesNames, double *dMoleFractions,
            int iStringLength, double dTemp, double dTime);
+int cpoutend (char *sOutputfileName, int iOutputfileUnit,
+			  int *iCKwork, double *dCKwork, double *dSolution,
+			  int iSpeciesCount, char *sSpeciesNames, double *dMoleFractions,
+			  int iStringLength, double dTemp, double dTime);
 
 // Fortran function prototypes
 #if !defined( FORTRAN_FROM_CPLUSPLUS )
