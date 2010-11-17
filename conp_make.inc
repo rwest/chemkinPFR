@@ -35,7 +35,7 @@ SLATEC_OBJS = \
 # slatec/src/xersve$(OBJECT)    \
 # slatec/src/xgetua$(OBJECT)    \
 
-CONP_OBJS = cpsolve$(OBJECT) $(SLATEC_OBJS)
+CONP_OBJS = cpsolve$(OBJECT) $(SLATEC_OBJS) dnsqsolve$(OBJECT)
 
 conp$(OBJECT) : conp.cpp
 	$(CXX) $(CPPFLAGS) -c conp.cpp $(CPPF77FLAGS)
