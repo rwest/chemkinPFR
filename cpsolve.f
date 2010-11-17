@@ -20,14 +20,29 @@ C*****INCLUDE-IF precision_single
 C      IMPLICIT REAL (A-H, O-Z), INTEGER (I-N)
 C*****END INCLUDE-IF precision_single
       DIMENSION RVODE(LRW),IVODE(LIW),Z(NEQ),RWORK(*),IWORK(*)
-      COMMON /ICONS/ FIXEDMF(20), KK, NP, NWT, NH, NWDOT
+      DIMENSION FFIXEDMF(KK)
+      COMMON /ICONS/ IFIXEDMF(128), KK, NP, NWT, NH, NWDOT
       EXTERNAL FUN
       KK   = NKK
       NP   = NNP
       NWT  = NNWT
       NH   = NNH
       NWDOT= NNWDOT
-      FIXEDMF = FFIXEDMF
+      
+C Store the fixed species
+C FIRST SET THEM ALL TO ZERO
+      DO 10 K = 1, 128
+        IFIXEDMF(K) = 0
+ 10   CONTINUE
+C THEN STORE 
+      J = 1
+      DO 20 K = 1, KK
+        IF (FFIXEDMF(K) .NE. 0.0) THEN
+            IFIXEDMF(J) = K
+            J = J + 1
+        END IF
+ 20   CONTINUE
+      
 C*****INCLUDE-IF precision_single
 C      CALL SVODE
 C*****END INCLUDE-IF precision_single
@@ -51,7 +66,7 @@ C*****INCLUDE-IF precision_single
 C      IMPLICIT REAL (A-H,O-Z), INTEGER(I-N)
 C*****END INCLUDE-IF precision_single
 C
-      COMMON /ICONS/ FIXEDMF(20), KK, NP, NWT, NH, NWDOT
+      COMMON /ICONS/ IFIXEDMF(128), KK, NP, NWT, NH, NWDOT
       DIMENSION Z(*), ZP(*), RPAR(*), IPAR(*)
 C
 C     Variables in Z are:  Z(1)   = T
@@ -75,14 +90,19 @@ C
       DO 100 K = 1, KK
 C         H    = RPAR(NH    + K - 1)
          WDOT = RPAR(NWDOT + K - 1)
-C For species which have a nonzero FIXEDMF we set the creation rate to zero
-         IF (FIXEDMF(K) .GE. 0.0) WDOT = 0.0
          WT   = RPAR(NWT   + K - 1)
          ZP(K+1) = WDOT * WT / RHO
 C isothermal so following line commented out:
 C         SUM = SUM + H * WDOT * WT
  100  CONTINUE
-      ZP(1) = -SUM / (RHO*CPB)
+
+C For species which have a nonzero FIXEDMF we set the creation rate to zero
+      DO 200 K = 1, 128
+         IF (IFIXEDMF(K) .NE. 0) ZP(IFIXEDMF(K)+1) = 0.0
+ 200  CONTINUE
+      
+C      ZP(1) = -SUM / (RHO*CPB)
+      ZP(1) = 0.0
 C
 C     end of SUBROUTINE FUN
       RETURN
