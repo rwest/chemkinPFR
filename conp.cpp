@@ -130,7 +130,7 @@ int main()
 
     // Integration control parameters for VODE
     int iMethodFlag=22, iState=1, iItol=1, iOpt=0, iTask=1;
-    double dAtol = 1.0e-15; double dRtol = 1.0e-6;
+    double dAtol = 1.0e-20; double dRtol = 1.0e-9;
 
     // print initial conditions to the Fortran output file
     iFlag = cpout (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
@@ -150,12 +150,14 @@ int main()
                       iStringLength, dTemp, dTlast);
 	   // reset the amounts of major species in the dMoleFractions array.
 		resetFixedMoleFractions( iSpeciesCount, dMoleFractions, dFixedMoleFractions );
-		
 	   // reset the amount of N2 in the dMoleFractions array.
 	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit,
 						iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
 	   // store the updated mole fractions.
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
+		
+	  // increase the next step size
+		if (dTdelta<0.5) dTdelta *= 2;
     }
 
     CFMESS (sOutputfileName,(char *)"END OF INTEGRATION...");
@@ -391,7 +393,7 @@ int cpout (char *sOutputfileName, int iOutputfileUnit,
       fprintf(fpOutfile, "\n%8s  %11s   ", "T(SEC)", "TMP(K)");
       char *sName    = new char [ iStringLength + 1 ];
       for (i=0; i < iSpeciesCount; i++) {
-         sscanf(sSpeciesNames+(i*iStringLength), "%10s  ", sName);
+         sscanf(sSpeciesNames+(i*iStringLength), "%16s  ", sName);
          if (iCol==3 && iLine>1) fprintf(fpOutfile, "%24s", " ");
          fprintf(fpOutfile, "%10s  ", sName);
          if (++iCol > iNcol || i+1 == iSpeciesCount)
