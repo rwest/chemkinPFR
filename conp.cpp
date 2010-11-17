@@ -157,7 +157,7 @@ int main()
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
 		
 	  // increase the next step size
-		if (dTdelta<0.5) dTdelta *= 2;
+		if (dTdelta<0.0005) dTdelta *= 2;
     }
 
     CFMESS (sOutputfileName,(char *)"END OF INTEGRATION...");
