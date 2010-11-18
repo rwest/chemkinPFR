@@ -1,4 +1,12 @@
-      PROGRAM TEST
+      SUBROUTINE DNSQSOLVE(NKK, NNP, NNWT, NNH, NNWDOT, NEQ, Z, TT1,
+     1                   TT2, ITOL, RTOL, ATOL, ITASK, IOPT, RVODE,
+     2                   LRW, IVODE, LIW, MF, RWORK, IWORK,
+     3                   LOUT, ISTATE, FFIXEDMF)
+C
+C     Interface from the C++ driver program
+C
+      IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
+
 C
 C     DRIVER FOR DNSQE EXAMPLE.
 C
@@ -18,6 +26,9 @@ C
          X(J) = -1.E0
    10    CONTINUE
 
+C       WA is a work array of length LWA.
+C       LWA is a positive integer input variable not less than
+C         (3*N**2+13*N))/2.
       LWA = 180
       NPRINT = 0
 C
@@ -35,6 +46,10 @@ C
      *        5X,' EXIT PARAMETER',16X,I10 //
      *        5X,' FINAL APPROXIMATE SOLUTION' // (5X,3E15.7))
       END
+      
+C
+C       THE SUBROUTINE THAT WE'RE TRYING TO SOLVE:
+C      
       SUBROUTINE FCN(N,X,FVEC,IFLAG)
       INTEGER N,IFLAG
       DOUBLE PRECISION X(N),FVEC(N)
