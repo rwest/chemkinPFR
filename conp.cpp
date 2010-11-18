@@ -169,7 +169,8 @@ int main()
 				   iStringLength, dTemp, dTlast);
 	
 	CFMESS (sOutputfileName,(char *)"TRYING NONLINEAR SOLVE");
-	DNSQSOLVE(iSpeciesCount, dPres, dTemp, dMoleFractions,
+	int iTempSpeciesCount = iSpeciesCount; // = 50
+	DNSQSOLVE(iTempSpeciesCount, dPres, dTemp, dMoleFractions,
               iNitro, dFixedMoleFractions, iCKsizeD, iCKsizeI, dCKwork, iCKwork,
               iOutputfileUnit, iState);
 	// store the updated mole fractions.

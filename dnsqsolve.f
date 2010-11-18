@@ -94,6 +94,7 @@ C     UNLESS HIGH PRECISION SOLUTIONS ARE REQUIRED,
 C     THIS IS THE RECOMMENDED SETTING.
 C
       TOL = SQRT(D1MACH(4))
+C      TOL = TOL / 2.0
 C
       CALL DNSQE(FCN,JAC,IOPT,N,X,FVEC,TOL,NPRINT,INFO,WA,LWA)
       FNORM = DENORM(N,FVEC)
@@ -130,7 +131,7 @@ C     temperature(s) and mole fractions. Result returned in FVEC.
       CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC)
       
       DO K = 1, N
-        FVEC(K) = FVEC(K) * 1E6
+        FVEC(K) = FVEC(K) * 1E9
       END DO
       
 C For species which have a nonzero FIXEDMF we set the residual to the 
@@ -152,6 +153,11 @@ C For Nitrogen, the equation we solve is that the sum of everything equals 1
         SUM = SUM + X(K)
       END DO
       FVEC(INITRO) = 1.0 - SUM
-C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)     
+C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)
+
+      IF (IFLAG .EQ. 0) THEN
+        WRITE(LOUT,*) ' NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
+      END IF
+      
       RETURN
       END
