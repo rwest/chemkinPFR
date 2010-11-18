@@ -87,7 +87,7 @@ C         (3*N**2+13*N))/2.
       LWA = (3*N**2 + 13*N)/2 + 1
 C
       IOPT = 2
-      NPRINT = 1
+      NPRINT = 5
 C
 C     SET TOL TO THE SQUARE ROOT OF THE MACHINE PRECISION.
 C     UNLESS HIGH PRECISION SOLUTIONS ARE REQUIRED,
@@ -118,6 +118,11 @@ C
       INTEGER N,IFLAG
       DOUBLE PRECISION X(N),FVEC(N), SUM
       LOUT = LLOUT
+
+      IF (IFLAG .EQ. 0) THEN
+         WRITE(LLOUT, 1002) (X(J),J=1,N)
+ 1002 FORMAT (5X,' CURRENT SOLUTION' // (4X,4E15.7))
+      END IF
 C     We want the solution FVEC=0
 C
 C     Returns the molar production rates of the species given pressure,
