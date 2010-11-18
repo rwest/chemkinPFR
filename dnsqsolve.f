@@ -120,10 +120,10 @@ C
       DOUBLE PRECISION X(N),FVEC(N), SUM
       LOUT = LLOUT
 
-      IF (IFLAG .EQ. 0) THEN
-         WRITE(LLOUT, 1002) (X(J),J=1,N)
- 1002 FORMAT (5X,' CURRENT SOLUTION' // (4X,4E15.7))
-      END IF
+C      IF (IFLAG .EQ. 0) THEN
+C         WRITE(LLOUT, 1002) (X(J),J=1,N)
+C 1002 FORMAT (5X,' CURRENT SOLUTION' // (4X,4E15.7))
+C      END IF
 C     We want the solution FVEC=0
 C
 C     Returns the molar production rates of the species given pressure,
@@ -156,7 +156,7 @@ C For Nitrogen, the equation we solve is that the sum of everything equals 1
 C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)
 
       IF (IFLAG .EQ. 0) THEN
-        WRITE(LOUT,*) ' NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
+        WRITE(LOUT,*) ' CURRENT NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
       END IF
       
       RETURN
