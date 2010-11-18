@@ -14,17 +14,18 @@
 #
 
 SLATEC_OBJS = \
- slatec/src/dqform$(OBJECT)     \
- slatec/src/dqrfac$(OBJECT)    \
- slatec/src/i1mach$(OBJECT)    \
- slatec/src/d1mach$(OBJECT)    \
- slatec/src/d1mpyq$(OBJECT)    \
- slatec/src/d1updt$(OBJECT)    \
- slatec/src/ddoglg$(OBJECT)    \
  slatec/src/denorm$(OBJECT)    \
+ slatec/src/dqrfac$(OBJECT)    \
+ slatec/src/dqform$(OBJECT)     \
+ slatec/src/d1updt$(OBJECT)    \
+ slatec/src/d1mpyq$(OBJECT)    \
+ slatec/src/ddoglg$(OBJECT)    \
  slatec/src/dfdjc1$(OBJECT)    \
  slatec/src/dnsq$(OBJECT)      \
  slatec/src/dnsqe$(OBJECT)     
+# not needed and cause DVODE to die with no useful error message:
+# slatec/src/i1mach$(OBJECT)    \
+# slatec/src/d1mach$(OBJECT)    \
 # already defined in chemkin_v4.1.1/distrib/@sys/lib/chemkin_public.a :
 # slatec/src/j4save$(OBJECT)    \
 # slatec/src/fdump$(OBJECT)     \
@@ -72,7 +73,8 @@ conp.out     : conp$(EXE) chem.asc conp.inp
 	.$(SLASH)conp$(EXE)
 
 CLEAN       :
-	$(REMOVE) $(EXTRA_CLEAN) $(CONP_OUTPUTS) $(ALL_EXES) $(ALL_LIBS)
+	$(REMOVE) $(EXTRA_CLEAN) $(CONP_OUTPUTS) $(ALL_EXES) $(ALL_LIBS) $(CONP_OBJS)
+	echo "I just wiped your therm.dat (and all these: $(EXTRA_CLEAN))"
 
 # ----------------------------------------------------------------------------
 
