@@ -129,6 +129,10 @@ C     Returns the molar production rates of the species given pressure,
 C     temperature(s) and mole fractions. Result returned in FVEC.
       CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC)
       
+      DO K = 1, N
+        FVEC(K) = FVEC(K) * 1E6
+      END DO
+      
 C For species which have a nonzero FIXEDMF we set the residual to the 
 C difference between its value and its FIXED value.
       DO 200 K = 1, 128
