@@ -57,7 +57,7 @@ conp$(EXE)     :  conp$(OBJECT) $(CONP_OBJS)
 #     the input file is 'chem.inp'
 #     the output file is 'chem.out'
 #*************************************
-chem.asc     : $(CHEMKINBIN)chem$(EXE) chem.inp
+chem.asc     : $(CHEMKINBIN)chem$(EXE) chem.inp therm.dat
 	$(CK_DISPLAY) Running chem
 	$(REMOVE) $(CHEM_OUTPUTS)
 	$(CHEMKINBIN)chem -i chem.inp -o chem.out
