@@ -25,7 +25,7 @@ C     Input and output variables
 C     Other variables
       DOUBLE PRECISION WA((3*N**2 + 13*N)/2 + 1)
       DOUBLE PRECISION TOL,FNORM
-      DOUBLE PRECISION X(N),FVEC(N)
+      DOUBLE PRECISION X(N),FVEC(N), XLOG(N)
       DOUBLE PRECISION DENORM,D1MACH
       INTEGER J,K,IOPT,NPRINT,INFO,LWA,NWRITE
       EXTERNAL FCN
@@ -79,6 +79,10 @@ C   that the initial guess is well formed and has no other zeros in.
 C ****** END OF COMMON BLOCK INITIALIZATION
 
       WRITE(LOUT,*) 'If INITRO=',INITRO,' then X(N2) = ',X(INITRO)
+      
+      DO K = 1, N
+        XLOG(K) = LOG10(X(K))
+      END DO
 
       ISTATE = 0
 C       WA is a work array of length LWA.
@@ -96,10 +100,14 @@ C
       TOL = SQRT(D1MACH(4))
 C      TOL = TOL / 2.0
 C
-      CALL DNSQE(FCN,JAC,IOPT,N,X,FVEC,TOL,NPRINT,INFO,WA,LWA)
+      CALL DNSQE(FCN,JAC,IOPT,N,XLOG,FVEC,TOL,NPRINT,INFO,WA,LWA)
       FNORM = DENORM(N,FVEC)
-      WRITE (LOUT,1000) FNORM,INFO,(X(J),J=1,N)
       
+      DO K = 1, N
+        X(K) = 10.0 ** XLOG(K)
+      END DO
+      
+      WRITE (LOUT,1000) FNORM,INFO,(X(J),J=1,N)
       WRITE(LOUT,1001) (FVEC(J),J=1,N)
       
  1000 FORMAT (5X,' FINAL L2 NORM OF THE RESIDUALS',E15.7 //
@@ -112,14 +120,17 @@ C
 C **************************
 C       THE SUBROUTINE THAT WE'RE TRYING TO SOLVE:
 C       
-      SUBROUTINE FCN(N,X,FVEC,IFLAG)
+      SUBROUTINE FCN(N,XLOG,FVEC,IFLAG)
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
       COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),PRES,TEMP
       COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO,LLOUT
-      INTEGER N,IFLAG
-      DOUBLE PRECISION X(N),FVEC(N), SUM
+      INTEGER N,IFLAG,K
+      DOUBLE PRECISION X(N),XLOG(N),FVEC(N), SUM
       LOUT = LLOUT
 
+      DO K = 1, N
+        X(K) = 10.0 ** XLOG(K)
+      END DO
 C      IF (IFLAG .EQ. 0) THEN
 C         WRITE(LLOUT, 1002) (X(J),J=1,N)
 C 1002 FORMAT (5X,' CURRENT SOLUTION' // (4X,4E15.7))
@@ -131,7 +142,7 @@ C     temperature(s) and mole fractions. Result returned in FVEC.
       CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC)
       
       DO K = 1, N
-        FVEC(K) = FVEC(K) * 1E9
+        FVEC(K) = FVEC(K) * 1E6
       END DO
       
 C For species which have a nonzero FIXEDMF we set the residual to the 
@@ -139,7 +150,9 @@ C difference between its value and its FIXED value.
       DO 200 K = 1, 128
          J = IFIXEDMF(K)
          IF (J .NE. 0) THEN
-           FVEC(J) = X(J) - FIFIXEDMF(K)
+           FVEC(J) = LOG10(X(J) / FIFIXEDMF(K))
+C          Fix for things being set to zero
+           IF (FIFIXEDMF(K) .EQ. 0.0) FVEC(J) = X(J) 
          ELSE 
 C           WRITE(LOUT,*) 'Fixed ', K-1,' residuals.'
            GOTO 201
@@ -152,11 +165,12 @@ C For Nitrogen, the equation we solve is that the sum of everything equals 1
       DO K = 1, N
         SUM = SUM + X(K)
       END DO
-      FVEC(INITRO) = 1.0 - SUM
+      FVEC(INITRO) = LOG10(1.0 / SUM)
 C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)
 
       IF (IFLAG .EQ. 0) THEN
         WRITE(LOUT,*) ' CURRENT NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
+        WRITE(LOUT,*) ' CURRENT X(N2) = ', X(INITRO)
       END IF
       
       RETURN
