@@ -19,6 +19,7 @@ int main()
     int iGasLinkfileUnit   = 25;           // Fortran linkfile unit number
 
     int iFlag=0;
+	int iNitro=0;
     if (!strstr(sOutputfileName,"stdout") && iOutputfileUnit!=6) {
        // Open diagnostics file for Fortran WRITE (requires integer Fortran unit)
        CCOPEN (sOutputfileName,
@@ -151,7 +152,7 @@ int main()
 	   // reset the amounts of major species in the dMoleFractions array.
 		resetFixedMoleFractions( iSpeciesCount, dMoleFractions, dFixedMoleFractions );
 	   // reset the amount of N2 in the dMoleFractions array.
-	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit,
+	   iNitro = resetN2 (sOutputfileName, iOutputfileUnit,
 						iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
 	   // store the updated mole fractions.
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
@@ -213,6 +214,7 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
 	 after calling this function.
 	 
+	 Returns the index of Nitrogen in the arrays.
 	 */
 	int iFlag=0;
 	FILE *fpOutfile = stdout;
@@ -263,7 +265,7 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 		if (ifFlag==0) ifFlag = CFEND (sOutputfileName); // go to end of output file
 		return max(iFlag,ifFlag);
 	}
-	return iFlag;
+	return iFound;
 }
 
 

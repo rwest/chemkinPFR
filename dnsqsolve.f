@@ -1,50 +1,79 @@
-      SUBROUTINE DNSQSOLVE(NKK, PPRES, TTEMP, NNWDOT, NEQ, Z, TT1,
-     1                   TT2, ITOL, RTOL, ATOL, ITASK, IOPT, RVODE,
-     2                   LRW, IVODE, LIW, MF, RRWORK, IIWORK,
-     3                   LOUT, ISTATE, FFIXEDMF, IINITRO)
+C***********************************************************************BEGIN-HDR
+C  Solver written by Richard West rwest@mit.edu November 2010
+C  Based in part off the examples in 
+C   SLATEC's dnsqe.f 
+C  and CHEMKIN's 
+C   /chemkin/4.1/prebuild/samples/sample_apps_cpp/conp/cpsolve.f
+C***********************************************************************END-HDR
+ 
+      SUBROUTINE DNSQSOLVE(N, PPRES, TTEMP, X, 
+     1                   IINITRO, FFIXEDMF, 
+     2                   LRW, LIW, RRWORK, IIWORK,
+     3                   LOUT, ISTATE )
+C
+C      DNSQSOLVE(iSpeciesCount, dPres, dTemp, dMoleFractions,
+C              iNitro, dFixedMoleFractions,  dCKwork, iCKwork,
+C              iOutputfileUnit, iState);
 C
 C     Interface from the C++ driver program
 C
+C     Input and output variables
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
       INTEGER LRW, LIW
-      INTEGER J,IOPT,NPRINT,INFO,LWA,NWRITE
       DIMENSION RRWORK(LRW),IIWORK(LIW)
-      DOUBLE PRECISION WA((3*NKK**2 + 13*NKK)/2 + 1)
+C     Other variables
+      DOUBLE PRECISION WA((3*N**2 + 13*N)/2 + 1)
       DOUBLE PRECISION TOL,FNORM
-      DOUBLE PRECISION X(NKK),FVEC(NKK)
+      DOUBLE PRECISION X(N),FVEC(N)
       DOUBLE PRECISION DENORM,D1MACH
+      INTEGER J,K,IOPT,NPRINT,INFO,LWA,NWRITE
       EXTERNAL FCN
       DATA NWRITE /6/
-      COMMON /RCKBLK/ RWORK(500000),PRES,TEMP
-      COMMON /ICBBLK/ IWORK(500000),INITRO
-      DO J = 1, LRW
-        RWORK(J) = RRWORK(J)
+      
+C ****** START OF COMMON BLOCK INITIALIZATION
+      COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),PRES,TEMP
+      COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO
+C     Copy the chemkin work arrays into my common block
+      IF (LRW .GT. 500000 .OR. LIW .GT. 500000) THEN
+        WRITE (LOUT,*) ' Chemkin work arrays are too large!'
+        WRITE (LOUT,*) ' Edit dnsqsolve.f, recompile, and try again.'
+        ISTATE = -99
+        RETURN
+      END IF
+      DO K = 1, LRW
+        RWORK(K) = RRWORK(K)
       END DO
-      DO J = 1, LIW
-        IWORK(J) = IIWORK(J)
+      DO K = 1, LIW
+        IWORK(K) = IIWORK(K)
       END DO
+C     Copy other variables into my common block
       PRES = PPRES
       TEMP = TTEMP
-      N = NKK
       INITRO = IINITRO
+C Store the fixed species (AT MOST 128)
+C FIRST SET THEM ALL TO ZERO
+      DO K = 1, 128
+        IFIXEDMF(K) = 0
+        FIFIXEDMF(K) = 0.0
+      END DO
+C THEN STORE INDICES OF THOSE SPECIES THAT SHOULD BE FIXED IN IFIXEDMF
+C AND THEIR FIXED VALUES IN FIFXEDMF
+      J = 1
+      DO K = 1, KK
+        IF (FFIXEDMF(K) .NE. 0.0) THEN
+            IFIXEDMF(J) = K
+            FIFIXEDMF(J) = FFIXEDMF(K)
+            J = J + 1
+        END IF
+      END DO
+C ****** END OF COMMON BLOCK INITIALIZATION
+      ISTATE = 0
 C       WA is a work array of length LWA.
 C       LWA is a positive integer input variable not less than
 C         (3*N**2+13*N))/2.
-      LWA = (3*NKK**2 + 13*NKK)/2 + 1
-
-
+      LWA = (3*N**2 + 13*N)/2 + 1
 C
       IOPT = 2
-
-
-C
-C     THE FOLLOWING STARTING VALUES PROVIDE A ROUGH SOLUTION.
-C
-      DO 10 J = 1, 9
-         X(J) = -1.E0
-   10    CONTINUE
-
-
       NPRINT = 0
 C
 C     SET TOL TO THE SQUARE ROOT OF THE MACHINE PRECISION.
@@ -63,20 +92,39 @@ C
      
       RETURN
       END
-      
-C
+C **************************
 C       THE SUBROUTINE THAT WE'RE TRYING TO SOLVE:
 C       
       SUBROUTINE FCN(N,X,FVEC,IFLAG)
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-      COMMON /RCKBLK/ RWORK(500000),PRES,TEMP
-      COMMON /ICBBLK/ IWORK(500000),INITRO
+      COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),PRES,TEMP
+      COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO
       INTEGER N,IFLAG
-      DOUBLE PRECISION X(N),FVEC(N)
-      
+      DOUBLE PRECISION X(N),FVEC(N), SUM
+C     We want the solution FVEC=0
+C
 C     Returns the molar production rates of the species given pressure,
 C     temperature(s) and mole fractions. Result returned in FVEC.
-      CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC) 
-
+      CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC)
+      
+C For species which have a nonzero FIXEDMF we set the residual to the 
+C difference between its value and its FIXED value.
+      DO 200 K = 1, 128
+         J = IFIXEDMF(K)
+         IF (J .NE. 0) THEN
+           FVEC(J) = X(J) - FIFIXEDMF(J)
+         ELSE 
+           GOTO 201
+         END IF
+ 200  CONTINUE
+ 201  CONTINUE
+ 
+C For Nitrogen, the equation we solve is that the sum of everything equals 1
+      SUM = 0.0
+      DO K = 1, N
+        SUM = SUM + X(K)
+      END DO
+      FVEC(INITRO) = 1.0 - SUM
+      
       RETURN
       END
