@@ -152,7 +152,7 @@ int main()
 	   // reset the amounts of major species in the dMoleFractions array.
 		resetFixedMoleFractions( iSpeciesCount, dMoleFractions, dFixedMoleFractions );
 	   // reset the amount of N2 in the dMoleFractions array.
-	   iNitro = resetN2 (sOutputfileName, iOutputfileUnit,
+	   iNitro = 1 + resetN2 (sOutputfileName, iOutputfileUnit,
 						iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
 	   // store the updated mole fractions.
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
@@ -167,6 +167,19 @@ int main()
 	iFlag = cpoutend (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
 				   dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
 				   iStringLength, dTemp, dTlast);
+	
+	CFMESS (sOutputfileName,(char *)"TRYING NONLINEAR SOLVE");
+	
+	DNSQSOLVE(iSpeciesCount, dPres, dTemp, dMoleFractions,
+              iNitro, dFixedMoleFractions, iCKsizeD, iCKsizeI, dCKwork, iCKwork,
+              iOutputfileUnit, iState);
+	// store the updated mole fractions.
+	CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
+	// append the final solution to the Fortran output file
+	iFlag = cpoutend (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
+					  dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
+					  iStringLength, dTemp, dTlast);
+	
 	CFMESS (sOutputfileName,(char *)"CALCULATION COMPLETE");
 	
     CCCLOS (sOutputfileName);
@@ -214,9 +227,9 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
 	 after calling this function.
 	 
-	 Returns the index of Nitrogen in the arrays.
+	 Returns the index of Nitrogen in the arrays - IN C++ FORMAT (starting from 0)
 	 */
-	int iFlag=0;
+
 	FILE *fpOutfile = stdout;
 	if (!strstr(sOutputfileName,"stdout") && iOutputfileUnit != 6) {
 		// switch from Fortran to C++ formatted output file
@@ -245,13 +258,12 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 		}
 	}
 	if (iFound < 0) {
-		iFlag = 1; fprintf(fpOutfile, "%s\n", "Couldn't find N2 in species list.");
+		fprintf(fpOutfile, "%s\n", "Couldn't find N2 in species list.");
 	}
 	else {
 		dMoleFractions[iFound] = 1.0 - dTotal;
 	}
 	//fprintf(fpOutfile, "%s %10.3e\n", "N2 mole fraction should equal ",(1.0 - dTotal));
-	
 	// CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);  // get mass fractions, i.e set mole fractions
 	
 	delete [] sName;
@@ -263,7 +275,7 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 				(char *)"FORMATTED",
 				(char *)"UNKNOWN", iOutputfileUnit, ifFlag);
 		if (ifFlag==0) ifFlag = CFEND (sOutputfileName); // go to end of output file
-		return max(iFlag,ifFlag);
+		//return max(iFlag,ifFlag);
 	}
 	return iFound;
 }
@@ -360,9 +372,10 @@ int cpinp (char *sOutputfileName, int iOutputfileUnit,
    delete [] sName;
 	
    // Reset the N2 mole fraction to make the total equal 1.0
-	iFlag = resetN2 (sOutputfileName, iOutputfileUnit, 
+	int iNitro;
+	iNitro = resetN2 (sOutputfileName, iOutputfileUnit, 
 					 iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
-	iFlag = resetN2 (sOutputfileName, iOutputfileUnit, 
+	iNitro = resetN2 (sOutputfileName, iOutputfileUnit, 
 					 iSpeciesCount, iStringLength, sSpeciesNames, dFixedMoleFractions);
 
    // Normalize the mole fractions

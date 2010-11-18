@@ -12,7 +12,7 @@ C***********************************************************************END-HDR
      3                   LOUT, ISTATE )
 C
 C      DNSQSOLVE(iSpeciesCount, dPres, dTemp, dMoleFractions,
-C              iNitro, dFixedMoleFractions,  dCKwork, iCKwork,
+C              iNitro, dFixedMoleFractions, iCKsizeD, iCKsizeI, dCKwork, iCKwork,
 C              iOutputfileUnit, iState);
 C
 C     Interface from the C++ driver program
@@ -20,7 +20,8 @@ C
 C     Input and output variables
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
       INTEGER LRW, LIW
-      DIMENSION RRWORK(LRW),IIWORK(LIW)
+      DIMENSION RRWORK(LRW), IIWORK(LIW)
+      DOUBLE PRECISION FFIXEDMF(N)
 C     Other variables
       DOUBLE PRECISION WA((3*N**2 + 13*N)/2 + 1)
       DOUBLE PRECISION TOL,FNORM
@@ -28,11 +29,10 @@ C     Other variables
       DOUBLE PRECISION DENORM,D1MACH
       INTEGER J,K,IOPT,NPRINT,INFO,LWA,NWRITE
       EXTERNAL FCN
-      DATA NWRITE /6/
       
 C ****** START OF COMMON BLOCK INITIALIZATION
       COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),PRES,TEMP
-      COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO
+      COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO,LLOUT
 C     Copy the chemkin work arrays into my common block
       IF (LRW .GT. 500000 .OR. LIW .GT. 500000) THEN
         WRITE (LOUT,*) ' Chemkin work arrays are too large!'
@@ -50,6 +50,7 @@ C     Copy other variables into my common block
       PRES = PPRES
       TEMP = TTEMP
       INITRO = IINITRO
+      LLOUT = LOUT
 C Store the fixed species (AT MOST 128)
 C FIRST SET THEM ALL TO ZERO
       DO K = 1, 128
@@ -59,14 +60,26 @@ C FIRST SET THEM ALL TO ZERO
 C THEN STORE INDICES OF THOSE SPECIES THAT SHOULD BE FIXED IN IFIXEDMF
 C AND THEIR FIXED VALUES IN FIFXEDMF
       J = 1
-      DO K = 1, KK
+      DO K = 1, N
         IF (FFIXEDMF(K) .NE. 0.0) THEN
             IFIXEDMF(J) = K
             FIFIXEDMF(J) = FFIXEDMF(K)
             J = J + 1
         END IF
+C   Also fix species whose initial mole fractions (at this stage) are zero!!
+C   These should only be inert species like Ar and He, but this assumes
+C   that the initial guess is well formed and has no other zeros in.
+        IF (X(K) .EQ. 0.0) THEN
+            IFIXEDMF(J) = K
+            FIFIXEDMF(J) = 0.0
+            J = J + 1
+        END IF
       END DO
+      WRITE(LOUT,*) 'Stored ',J-1,' fixed mole fractions'
 C ****** END OF COMMON BLOCK INITIALIZATION
+
+      WRITE(LOUT,*) 'If INITRO=',INITRO,' then X(N2) = ',X(INITRO)
+
       ISTATE = 0
 C       WA is a work array of length LWA.
 C       LWA is a positive integer input variable not less than
@@ -74,7 +87,7 @@ C         (3*N**2+13*N))/2.
       LWA = (3*N**2 + 13*N)/2 + 1
 C
       IOPT = 2
-      NPRINT = 0
+      NPRINT = 1
 C
 C     SET TOL TO THE SQUARE ROOT OF THE MACHINE PRECISION.
 C     UNLESS HIGH PRECISION SOLUTIONS ARE REQUIRED,
@@ -84,11 +97,14 @@ C
 C
       CALL DNSQE(FCN,JAC,IOPT,N,X,FVEC,TOL,NPRINT,INFO,WA,LWA)
       FNORM = DENORM(N,FVEC)
-      WRITE (NWRITE,1000) FNORM,INFO,(X(J),J=1,N)
-      STOP
+      WRITE (LOUT,1000) FNORM,INFO,(X(J),J=1,N)
+      
+      WRITE(LOUT,1001) (FVEC(J),J=1,N)
+      
  1000 FORMAT (5X,' FINAL L2 NORM OF THE RESIDUALS',E15.7 //
      *        5X,' EXIT PARAMETER',16X,I10 //
      *        5X,' FINAL APPROXIMATE SOLUTION' // (5X,3E15.7))
+ 1001 FORMAT (5X,' FINAL RESIDUALS' // (5X,3E15.7))
      
       RETURN
       END
@@ -98,9 +114,10 @@ C
       SUBROUTINE FCN(N,X,FVEC,IFLAG)
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
       COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),PRES,TEMP
-      COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO
+      COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO,LLOUT
       INTEGER N,IFLAG
       DOUBLE PRECISION X(N),FVEC(N), SUM
+      LOUT = LLOUT
 C     We want the solution FVEC=0
 C
 C     Returns the molar production rates of the species given pressure,
@@ -112,8 +129,9 @@ C difference between its value and its FIXED value.
       DO 200 K = 1, 128
          J = IFIXEDMF(K)
          IF (J .NE. 0) THEN
-           FVEC(J) = X(J) - FIFIXEDMF(J)
+           FVEC(J) = X(J) - FIFIXEDMF(K)
          ELSE 
+C           WRITE(LOUT,*) 'Fixed ', K-1,' residuals.'
            GOTO 201
          END IF
  200  CONTINUE
@@ -125,6 +143,6 @@ C For Nitrogen, the equation we solve is that the sum of everything equals 1
         SUM = SUM + X(K)
       END DO
       FVEC(INITRO) = 1.0 - SUM
-      
+C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)     
       RETURN
       END
