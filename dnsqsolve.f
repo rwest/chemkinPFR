@@ -1,24 +1,36 @@
-      SUBROUTINE DNSQSOLVE(NKK, NNP, NNWT, NNH, NNWDOT, NEQ, Z, TT1,
+      SUBROUTINE DNSQSOLVE(NKK, PPRES, TTEMP, IINITRO, NNWDOT, NEQ, Z, TT1,
      1                   TT2, ITOL, RTOL, ATOL, ITASK, IOPT, RVODE,
-     2                   LRW, IVODE, LIW, MF, RWORK, IWORK,
+     2                   LRW, IVODE, LIW, MF, RRWORK, IIWORK,
      3                   LOUT, ISTATE, FFIXEDMF)
 C
 C     Interface from the C++ driver program
 C
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-
-C
-C     DRIVER FOR DNSQE EXAMPLE.
-C
       INTEGER J,N,IOPT,NPRINT,INFO,LWA,NWRITE
+      DIMENSION RRWORK(LRW)
       DOUBLE PRECISION TOL,FNORM
-      DOUBLE PRECISION X(9),FVEC(9),WA(180)
+      DOUBLE PRECISION X(N),FVEC(N),WA(LWA)
       DOUBLE PRECISION DENORM,D1MACH
       EXTERNAL FCN
       DATA NWRITE /6/
+      COMMON /CKBLK/ RWORK(500000),IWORK(500000),PRES,TEMP,N,INITRO
+      RWORK = RRWORK
+      IWORK = IIWORK
+      PRES = PPRES
+      TEMP = TTEMP
+      N = NKK
+      INITRO = IINITRO
+
+C       WA is a work array of length LWA.
+C       LWA is a positive integer input variable not less than
+C         (3*N**2+13*N))/2.
+      LWA = (3*N**2 + 13*N)/2 + 1
+
+
 C
       IOPT = 2
-      N = 9
+
+
 C
 C     THE FOLLOWING STARTING VALUES PROVIDE A ROUGH SOLUTION.
 C
@@ -26,10 +38,7 @@ C
          X(J) = -1.E0
    10    CONTINUE
 
-C       WA is a work array of length LWA.
-C       LWA is a positive integer input variable not less than
-C         (3*N**2+13*N))/2.
-      LWA = 180
+
       NPRINT = 0
 C
 C     SET TOL TO THE SQUARE ROOT OF THE MACHINE PRECISION.
@@ -49,21 +58,16 @@ C
       
 C
 C       THE SUBROUTINE THAT WE'RE TRYING TO SOLVE:
-C      
+C       
       SUBROUTINE FCN(N,X,FVEC,IFLAG)
+      IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
+      COMMON /CKBLK/ RWORK(500000),IWORK(500000),PRES,TEMP,N,INITRO
       INTEGER N,IFLAG
       DOUBLE PRECISION X(N),FVEC(N)
-      INTEGER K
-      DOUBLE PRECISION ONE,TEMP,TEMP1,TEMP2,THREE,TWO,ZERO
-      DATA ZERO,ONE,TWO,THREE /0.E0,1.E0,2.E0,3.E0/
-C
-      DO 10 K = 1, N
-         TEMP = (THREE - TWO*X(K))*X(K)
-         TEMP1 = ZERO
-         IF (K .NE. 1) TEMP1 = X(K-1)
-         TEMP2 = ZERO
-         IF (K .NE. N) TEMP2 = X(K+1)
-         FVEC(K) = TEMP - TEMP1 - TWO*TEMP2 + ONE
-   10    CONTINUE
+      
+C     Returns the molar production rates of the species given pressure,
+C     temperature(s) and mole fractions. Result returned in FVEC.
+      CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC) 
+
       RETURN
       END
