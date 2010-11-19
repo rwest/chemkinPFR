@@ -197,7 +197,6 @@ int main()
 	}
 	delete [] buffer; delete [] sName;
 	
-	
 	CFMESS (sOutputfileName,(char *)"TRYING NONLINEAR SOLVE");
 	int iTempSpeciesCount = iSpeciesCount; // = 50
 	DNSQSOLVE(iTempSpeciesCount, dPres, dTemp, dMoleFractions,
