@@ -355,6 +355,7 @@ C        CALL DNSQ.
 C
          MAXFEV = 100*(N + 1)
          IF (IOPT .EQ. 2) MAXFEV = 2*MAXFEV
+         MAXFEV = MAXFEV * 10
          XTOL = TOL
          ML = N - 1
          MU = N - 1
