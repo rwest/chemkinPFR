@@ -31,7 +31,7 @@ C     Other variables
       EXTERNAL FCN
       
 C ****** START OF COMMON BLOCK INITIALIZATION
-      COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),PRES,TEMP
+      COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),OLDX(500),PRES,TEMP
       COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO,LLOUT
 C     Copy the chemkin work arrays into my common block
       IF (LRW .GT. 500000 .OR. LIW .GT. 500000) THEN
@@ -72,6 +72,8 @@ C   that the initial guess is well formed and has no other zeros in.
         IF (X(K) .EQ. 0.0) THEN
             IFIXEDMF(J) = K
             FIFIXEDMF(J) = 0.0
+C   STORE SOMETHING CRAZY THERE FOR LOG PURPOSES
+            X(K) = 1.0
             J = J + 1
         END IF
       END DO
@@ -106,6 +108,11 @@ C
       DO K = 1, N
         X(K) = 10.0 ** XLOG(K)
       END DO
+C For species which have a nonzero FIXEDMF and a zero FIFIXEDMF we force it here
+      DO K = 1, 128
+         J = IFIXEDMF(K)
+         IF (J .NE. 0 .AND. FIFIXEDMF(K) .EQ. 0.0) X(J) = 0.0
+      END DO
       
       WRITE (LOUT,1000) FNORM,INFO,(X(J),J=1,N)
       WRITE(LOUT,1001) (FVEC(J),J=1,N)
@@ -114,7 +121,8 @@ C
      *        5X,' EXIT PARAMETER',16X,I10 //
      *        5X,' FINAL APPROXIMATE SOLUTION' // (5X,3E15.7))
  1001 FORMAT (5X,' FINAL RESIDUALS' // (5X,3E15.7))
-     
+
+
       RETURN
       END
 C **************************
@@ -122,7 +130,7 @@ C       THE SUBROUTINE THAT WE'RE TRYING TO SOLVE:
 C       
       SUBROUTINE FCN(N,XLOG,FVEC,IFLAG)
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-      COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),PRES,TEMP
+      COMMON /RCKBLK/ RWORK(500000),FIFIXEDMF(128),OLDX(500),PRES,TEMP
       COMMON /ICBBLK/ IWORK(500000),IFIXEDMF(128),INITRO,LLOUT
       INTEGER N,IFLAG,K
       DOUBLE PRECISION XLOG(N),FVEC(N), X(N),SUM
@@ -131,10 +139,19 @@ C
       DO K = 1, N
         X(K) = 10.0 ** XLOG(K)
       END DO
-C      IF (IFLAG .EQ. 0) THEN
-C         WRITE(LLOUT, 1002) (X(J),J=1,N)
-C 1002 FORMAT (5X,' CURRENT SOLUTION' // (4X,4E15.7))
-C      END IF
+C For species which have a nonzero FIXEDMF and a zero FIFIXEDMF we force it here
+      DO K = 1, 128
+         J = IFIXEDMF(K)
+         IF (J .NE. 0 .AND. FIFIXEDMF(K) .EQ. 0.0) X(J) = 0.0
+      END DO
+ 
+      IF (IFLAG .EQ. 0) THEN
+         WRITE(LLOUT, 1002) (XLOG(J)-OLDX(J),J=1,N)
+ 1002 FORMAT (5X,' CHANGE IN LOG10(X) THIS STEP' // (4X,5E15.7))
+         DO K = 1,N
+            OLDX(K) = XLOG(K)
+         END DO
+      END IF
 C     We want the solution FVEC=0
 C
 C     Returns the molar production rates of the species given pressure,
@@ -143,22 +160,18 @@ C     temperature(s) and mole fractions. Result returned in FVEC.
       
 C     Scale them somehow.
       DO K = 1, N
-        FVEC(K) = FVEC(K) / X(K)
+        FVEC(K) = FVEC(K) * 1E6
       END DO
       
 C For species which have a nonzero FIXEDMF we set the residual to the 
 C difference between its value and its FIXED value.
-      DO 200 K = 1, 128
+      DO K = 1, 128
          J = IFIXEDMF(K)
-         IF (J .NE. 0) THEN
-           FVEC(J) = LOG10(X(J) / FIFIXEDMF(K))
-C          Fix for things being set to zero
-           IF (FIFIXEDMF(K) .EQ. 0.0) FVEC(J) = X(J) 
-         ELSE 
-C           WRITE(LOUT,*) 'Fixed ', K-1,' residuals.'
-           GOTO 201
-         END IF
- 200  CONTINUE
+         IF (J .EQ. 0) GOTO 201
+         FVEC(J) = LOG10(X(J) / FIFIXEDMF(K))
+C        Fix for things being set to zero
+         IF (FIFIXEDMF(K) .EQ. 0.0) FVEC(J) = XLOG(J)
+      END DO
  201  CONTINUE
  
 C For Nitrogen, the equation we solve is that the sum of everything equals 1
@@ -170,6 +183,8 @@ C For Nitrogen, the equation we solve is that the sum of everything equals 1
 C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)
 
       IF (IFLAG .EQ. 0) THEN
+         WRITE(LLOUT, 1003) (FVEC(J),J=1,N)
+ 1003 FORMAT (5X,' CURRENT RESIDUALS' // (4X,5E15.7))
         WRITE(LOUT,*) ' CURRENT NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
 C        WRITE(LOUT,*) ' CURRENT X(N2) = ', X(INITRO)
       END IF
