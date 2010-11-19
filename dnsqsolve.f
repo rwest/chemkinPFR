@@ -150,23 +150,40 @@ C For species which have a nonzero FIXEDMF and a zero FIFIXEDMF we force it here
          IF (J .NE. 0 .AND. FIFIXEDMF(K) .EQ. 0.0) X(J) = 0.0
       END DO
  
-      IF (IFLAG .EQ. 0) THEN
+C      IF (IFLAG .EQ. 0) THEN
 C         WRITE(LLOUT, 1002) (XLOG(J)-OLDX(J),J=1,N)
- 1002 FORMAT (5X,' CHANGE IN LOG10(X) THIS STEP' // (4X,5E15.7))
-         DO K = 1,N
-            OLDX(K) = XLOG(K)
-         END DO
-      END IF
-C     We want the solution FVEC=0
+C 1002 FORMAT (5X,' CHANGE IN LOG10(X) THIS STEP' // (4X,5E15.7))
+C         DO K = 1,N
+C            OLDX(K) = XLOG(K)
+C         END DO
+C      END IF
+
 C
 C     Returns the molar production rates of the species given pressure,
 C     temperature(s) and mole fractions. Result returned in FVEC.
       CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC)
       
 C     PRINT THE NET RATES OF CREATION
-      IF (IFLAG .EQ. 0) WRITE(LOUT,1004) (FVEC(J),J=1,N)
+C      IF (IFLAG .EQ. 0) WRITE(LOUT,1004) (FVEC(J),J=1,N)
       
-C     Scale them somehow.
+C     TOTAL CREATION/DESTRUCTION RATE OF THINGS THAT AREN'T FIXED
+      SUM = 0.0
+C       First, get everything.
+      DO K = 1, N
+        SUM = SUM + ABS(FVEC(K))
+      END DO
+C       Then, subtract the fixed things.
+      DO K = 1, 128
+         J = IFIXEDMF(K)
+         IF (J .EQ. 0) GOTO 200
+         SUM = SUM - ABS(FVEC(J))
+      END DO
+ 200  CONTINUE
+      IF (IFLAG .EQ. 0) THEN
+         WRITE(LOUT,*) "Sum(Abs(molar_creation_rate)) = ", SUM
+      END IF
+      
+C     Scale the residuals somehow.
       DO K = 1, N
         FVEC(K) = FVEC(K) / X(K)
       END DO
@@ -192,10 +209,10 @@ C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)
 
       IF (IFLAG .EQ. 0) THEN
 C         WRITE(LLOUT, 1003) (FVEC(J),J=1,N)
- 1003 FORMAT (5X,' CURRENT RESIDUALS' // (4X,5E15.7))
-C        WRITE(LOUT,*) ' CURRENT NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
+C       WRITE(LOUT,*) ' CURRENT NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
 C        WRITE(LOUT,*) ' CURRENT X(N2) = ', X(INITRO)
 C        WRITE(LOUT,1004) (X(J),J=1,N)
+ 1003 FORMAT (5X,' CURRENT RESIDUALS' // (4X,5E15.7))
  1004 FORMAT (1000(E13.5))
       END IF
       
