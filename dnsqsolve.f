@@ -75,7 +75,7 @@ C   that the initial guess is well formed and has no other zeros in.
 C   STORE SOMETHING CRAZY THERE FOR LOGARITHM PURPOSES
             X(K) = 1.0
             J = J + 1
-            IF (J .EQ. 128) THEN 
+            IF (J .GE. 128) THEN 
                 WRITE(LOUT,*) 'CAN ONLY STORE 128 FIXED SPECIES'
                 STOP
             END IF

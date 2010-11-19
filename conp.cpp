@@ -188,6 +188,7 @@ int main()
 	char *buffer = new char [50];
 	char *sName    = new char [ iStringLength + 1 ];		
 	for (i=0; i < iSpeciesCount; i++) {
+		//if (dTestMoleFractions[i] == 0.0) { dTestMoleFractions[i] = 1E-12; }
 		if (dTestMoleFractions[i] > 0.0) {
 			dMoleFractions[i] = dTestMoleFractions[i];
 			sscanf(sSpeciesNames+(i*iStringLength), "%s", sName);
