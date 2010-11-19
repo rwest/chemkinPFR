@@ -66,15 +66,18 @@ C AND THEIR FIXED VALUES IN FIFXEDMF
             FIFIXEDMF(J) = FFIXEDMF(K)
             J = J + 1
         END IF
-C   Also fix species whose initial mole fractions (at this stage) are zero!!
+C   Also fix species whose initial mole fractions (at this stage) are zero
 C   These should only be inert species like Ar and He, but this assumes
 C   that the initial guess is well formed and has no other zeros in.
         IF (X(K) .EQ. 0.0) THEN
             IFIXEDMF(J) = K
             FIFIXEDMF(J) = 0.0
-C   STORE SOMETHING CRAZY THERE FOR LOG PURPOSES
+C   STORE SOMETHING CRAZY THERE FOR LOGARITHM PURPOSES
             X(K) = 1.0
             J = J + 1
+            IF (J .EQ. 128) THEN 
+                WRITE(LOUT,*) 'CAN ONLY STORE 128 FIXED SPECIES'
+            END IF
         END IF
       END DO
       WRITE(LOUT,*) 'Stored ',J-1,' fixed mole fractions'
@@ -100,15 +103,15 @@ C     UNLESS HIGH PRECISION SOLUTIONS ARE REQUIRED,
 C     THIS IS THE RECOMMENDED SETTING.
 C
       TOL = SQRT(D1MACH(4))
-      TOL = TOL / 2.0
+      TOL = D1MACH(4) ** 0.9
 C
       CALL DNSQE(FCN,JAC,IOPT,N,XLOG,FVEC,TOL,NPRINT,INFO,WA,LWA)
       FNORM = DENORM(N,FVEC)
-      
+C   Get the mole fractions from the solution
       DO K = 1, N
         X(K) = 10.0 ** XLOG(K)
       END DO
-C For species which have a nonzero FIXEDMF and a zero FIFIXEDMF we force it here
+C For species which have a nonzero IFIXEDMF and a zero FIFIXEDMF we fix it here
       DO K = 1, 128
          J = IFIXEDMF(K)
          IF (J .NE. 0 .AND. FIFIXEDMF(K) .EQ. 0.0) X(J) = 0.0
@@ -160,7 +163,7 @@ C     temperature(s) and mole fractions. Result returned in FVEC.
       
 C     Scale them somehow.
       DO K = 1, N
-        FVEC(K) = FVEC(K) / SQRT(X(K))
+        FVEC(K) = FVEC(K) / X(K)
       END DO
       
 C For species which have a nonzero FIXEDMF we set the residual to the 
