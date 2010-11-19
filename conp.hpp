@@ -38,6 +38,12 @@ int cpoutend (char *sOutputfileName, int iOutputfileUnit,
 			  int *iCKwork, double *dCKwork, double *dSolution,
 			  int iSpeciesCount, char *sSpeciesNames, double *dMoleFractions,
 			  int iStringLength, double dTemp, double dTime);
+int checkinp (char *sOutputfileName, int iOutputfileUnit,
+			  char *sInputfileName,
+			  int *iCKwork, double *dCKwork,
+			  int iSpeciesCount, int iStringLength,
+			  char *sSpeciesNames, double *dMoleFractions
+			  );
 
 // Fortran function prototypes
 #if !defined( FORTRAN_FROM_CPLUSPLUS )
