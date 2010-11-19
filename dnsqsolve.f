@@ -100,7 +100,7 @@ C     UNLESS HIGH PRECISION SOLUTIONS ARE REQUIRED,
 C     THIS IS THE RECOMMENDED SETTING.
 C
       TOL = SQRT(D1MACH(4))
-C      TOL = TOL * 2.0
+      TOL = TOL / 2.0
 C
       CALL DNSQE(FCN,JAC,IOPT,N,XLOG,FVEC,TOL,NPRINT,INFO,WA,LWA)
       FNORM = DENORM(N,FVEC)
@@ -146,7 +146,7 @@ C For species which have a nonzero FIXEDMF and a zero FIFIXEDMF we force it here
       END DO
  
       IF (IFLAG .EQ. 0) THEN
-         WRITE(LLOUT, 1002) (XLOG(J)-OLDX(J),J=1,N)
+C         WRITE(LLOUT, 1002) (XLOG(J)-OLDX(J),J=1,N)
  1002 FORMAT (5X,' CHANGE IN LOG10(X) THIS STEP' // (4X,5E15.7))
          DO K = 1,N
             OLDX(K) = XLOG(K)
@@ -160,7 +160,7 @@ C     temperature(s) and mole fractions. Result returned in FVEC.
       
 C     Scale them somehow.
       DO K = 1, N
-        FVEC(K) = FVEC(K) * 1E6
+        FVEC(K) = FVEC(K) / SQRT(X(K))
       END DO
       
 C For species which have a nonzero FIXEDMF we set the residual to the 
@@ -183,7 +183,7 @@ C For Nitrogen, the equation we solve is that the sum of everything equals 1
 C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)
 
       IF (IFLAG .EQ. 0) THEN
-         WRITE(LLOUT, 1003) (FVEC(J),J=1,N)
+C         WRITE(LLOUT, 1003) (FVEC(J),J=1,N)
  1003 FORMAT (5X,' CURRENT RESIDUALS' // (4X,5E15.7))
         WRITE(LOUT,*) ' CURRENT NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
 C        WRITE(LOUT,*) ' CURRENT X(N2) = ', X(INITRO)
