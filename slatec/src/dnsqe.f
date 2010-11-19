@@ -339,7 +339,7 @@ C***END PROLOGUE  DNSQE
      1     X(*), XTOL, ZERO
       EXTERNAL FCN, JAC
       SAVE FACTOR, ONE, ZERO
-      DATA FACTOR,ONE,ZERO /1.0D2,1.0D0,0.0D0/
+      DATA FACTOR,ONE,ZERO /1.0D-1,1.0D0,0.0D0/
 C     BEGIN BLOCK PERMITTING ...EXITS TO 20
 C***FIRST EXECUTABLE STATEMENT  DNSQE
          INFO = 0
@@ -359,9 +359,10 @@ C
          ML = N - 1
          MU = N - 1
          EPSFCN = ZERO
+C        EPSFCN = TOL
          MODE = 2
          DO 10 J = 1, N
-            WA(J) = ONE
+            WA(J) = 1.D+3
    10    CONTINUE
          LR = (N*(N + 1))/2
          INDEX = 6*N + LR
