@@ -77,6 +77,7 @@ C   STORE SOMETHING CRAZY THERE FOR LOGARITHM PURPOSES
             J = J + 1
             IF (J .EQ. 128) THEN 
                 WRITE(LOUT,*) 'CAN ONLY STORE 128 FIXED SPECIES'
+                STOP
             END IF
         END IF
       END DO
@@ -96,7 +97,8 @@ C         (3*N**2+13*N))/2.
       LWA = (3*N**2 + 13*N)/2 + 1
 C
       IOPT = 2
-      NPRINT = 1
+C     How frequently to print output from the residual FCN
+      NPRINT = 5
 C
 C     SET TOL TO THE SQUARE ROOT OF THE MACHINE PRECISION.
 C     UNLESS HIGH PRECISION SOLUTIONS ARE REQUIRED,
@@ -118,7 +120,7 @@ C For species which have a nonzero IFIXEDMF and a zero FIFIXEDMF we fix it here
       END DO
       
       WRITE (LOUT,1000) FNORM,INFO,(X(J),J=1,N)
-      WRITE(LOUT,1001) (FVEC(J),J=1,N)
+      WRITE (LOUT,1001) (FVEC(J),J=1,N)
       
  1000 FORMAT (5X,' FINAL L2 NORM OF THE RESIDUALS',E15.7 //
      *        5X,' EXIT PARAMETER',16X,I10 //
@@ -148,20 +150,40 @@ C For species which have a nonzero FIXEDMF and a zero FIFIXEDMF we force it here
          IF (J .NE. 0 .AND. FIFIXEDMF(K) .EQ. 0.0) X(J) = 0.0
       END DO
  
-      IF (IFLAG .EQ. 0) THEN
+C      IF (IFLAG .EQ. 0) THEN
 C         WRITE(LLOUT, 1002) (XLOG(J)-OLDX(J),J=1,N)
- 1002 FORMAT (5X,' CHANGE IN LOG10(X) THIS STEP' // (4X,5E15.7))
-         DO K = 1,N
-            OLDX(K) = XLOG(K)
-         END DO
-      END IF
-C     We want the solution FVEC=0
+C 1002 FORMAT (5X,' CHANGE IN LOG10(X) THIS STEP' // (4X,5E15.7))
+C         DO K = 1,N
+C            OLDX(K) = XLOG(K)
+C         END DO
+C      END IF
+
 C
 C     Returns the molar production rates of the species given pressure,
 C     temperature(s) and mole fractions. Result returned in FVEC.
       CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC)
       
-C     Scale them somehow.
+C     PRINT THE NET RATES OF CREATION
+C      IF (IFLAG .EQ. 0) WRITE(LOUT,1004) (FVEC(J),J=1,N)
+      
+C     TOTAL CREATION/DESTRUCTION RATE OF THINGS THAT AREN'T FIXED
+      SUM = 0.0
+C       First, get everything.
+      DO K = 1, N
+        SUM = SUM + ABS(FVEC(K))
+      END DO
+C       Then, subtract the fixed things.
+      DO K = 1, 128
+         J = IFIXEDMF(K)
+         IF (J .EQ. 0) GOTO 200
+         SUM = SUM - ABS(FVEC(J))
+      END DO
+ 200  CONTINUE
+      IF (IFLAG .EQ. 0) THEN
+         WRITE(LOUT,*) "Sum(Abs(molar_creation_rate)) = ", SUM
+      END IF
+      
+C     Scale the residuals somehow.
       DO K = 1, N
         FVEC(K) = FVEC(K) / X(K)
       END DO
@@ -187,9 +209,11 @@ C      WRITE(LOUT,*) '1.0 - SUM = ',FVEC(INITRO),'  N2 = ',X(INITRO)
 
       IF (IFLAG .EQ. 0) THEN
 C         WRITE(LLOUT, 1003) (FVEC(J),J=1,N)
- 1003 FORMAT (5X,' CURRENT RESIDUALS' // (4X,5E15.7))
-        WRITE(LOUT,*) ' CURRENT NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
+C       WRITE(LOUT,*) ' CURRENT NORM OF THE RESIDUAL = ', DENORM(N,FVEC)
 C        WRITE(LOUT,*) ' CURRENT X(N2) = ', X(INITRO)
+C        WRITE(LOUT,1004) (X(J),J=1,N)
+ 1003 FORMAT (5X,' CURRENT RESIDUALS' // (4X,5E15.7))
+ 1004 FORMAT (1000(E13.5))
       END IF
       
       RETURN
