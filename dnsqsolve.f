@@ -98,7 +98,7 @@ C     UNLESS HIGH PRECISION SOLUTIONS ARE REQUIRED,
 C     THIS IS THE RECOMMENDED SETTING.
 C
       TOL = SQRT(D1MACH(4))
-      TOL = TOL * 2.0
+C      TOL = TOL * 2.0
 C
       CALL DNSQE(FCN,JAC,IOPT,N,XLOG,FVEC,TOL,NPRINT,INFO,WA,LWA)
       FNORM = DENORM(N,FVEC)
@@ -141,8 +141,9 @@ C     Returns the molar production rates of the species given pressure,
 C     temperature(s) and mole fractions. Result returned in FVEC.
       CALL CKWXP (PRES, TEMP, X, IWORK, RWORK, FVEC)
       
+C     Scale them somehow.
       DO K = 1, N
-        FVEC(K) = FVEC(K) * 1E6
+        FVEC(K) = FVEC(K) / X(K)
       END DO
       
 C For species which have a nonzero FIXEDMF we set the residual to the 
