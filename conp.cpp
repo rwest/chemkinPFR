@@ -182,7 +182,7 @@ int main()
 	iFlag = cpoutend (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
 				   dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
 				   iStringLength, dTemp, dTlast);
-	
+/*	
 	CFMESS (sOutputfileName,(char *)"REPLACING SOME MOLE FRACTIONS WITH THOSE READ FROM THE TEST FILE:");
 	int i;
 	char *buffer = new char [50];
@@ -196,6 +196,7 @@ int main()
 		}
 	}
 	delete [] buffer; delete [] sName;
+//*/
 	
 	CFMESS (sOutputfileName,(char *)"TRYING NONLINEAR SOLVE");
 	int iTempSpeciesCount = iSpeciesCount; // = 50
