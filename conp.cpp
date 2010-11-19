@@ -13,12 +13,14 @@
 
 int main()
 {   char * sInputfileName  = (char *)"conp.inp";   // input file for the problem
+	char * sTestInputfileName = (char *)"dooley.inp";  // list of mole fractions to test in the optimizer
     char * sOutputfileName = (char *)"conp.out";   // output file for the problem
     char * sGasLinkfileName= (char *)"chem.asc";   // gas-phase mechanism linkfile
     int iOutputfileUnit    = 9;            // Fortran output file unit number
     int iGasLinkfileUnit   = 25;           // Fortran linkfile unit number
 
     int iFlag=0;
+	int iNitro=0;
     if (!strstr(sOutputfileName,"stdout") && iOutputfileUnit!=6) {
        // Open diagnostics file for Fortran WRITE (requires integer Fortran unit)
        CCOPEN (sOutputfileName,
@@ -93,10 +95,12 @@ int main()
     // problem parameters
     double dPres=0.0;  double dTemp=0.0;
     double *dMoleFractions = new double[ iSpeciesCount ];
+	double *dTestMoleFractions = new double[ iSpeciesCount ];
 	double *dFixedMoleFractions = new double[ iSpeciesCount ];
     for (int i=0; i<iSpeciesCount; i++) {
 		dMoleFractions[i] = 0.0;
 		dFixedMoleFractions[i] = 0.0;
+		dTestMoleFractions[i] = 0.0;
 	}
     double dTend=0.0; double dTdelta=0.0;
     // initialization from input file
@@ -110,6 +114,18 @@ int main()
 		delete [] sSpeciesNames; delete [] dMoleFractions; delete [] dFixedMoleFractions;
        return iFlag;
     }
+	
+	// read file of test amounts
+    if ( iFlag = checkinp (sOutputfileName, iOutputfileUnit,
+                        sTestInputfileName, iCKwork, dCKwork,
+                        iSpeciesCount, iStringLength,
+                        sSpeciesNames, dTestMoleFractions) )
+    {  CCCLOS (sOutputfileName);
+		delete [] iCKwork; delete [] dCKwork;  delete [] sCKwork;
+		delete [] sSpeciesNames; delete [] dMoleFractions;
+		return iFlag;
+    }	
+
 
     // initial conditions
     double dTstart = 0.0; double dTlast = 0.0;             // times
@@ -151,7 +167,7 @@ int main()
 	   // reset the amounts of major species in the dMoleFractions array.
 		resetFixedMoleFractions( iSpeciesCount, dMoleFractions, dFixedMoleFractions );
 	   // reset the amount of N2 in the dMoleFractions array.
-	   iFlag = resetN2 (sOutputfileName, iOutputfileUnit,
+	   iNitro = 1 + resetN2 (sOutputfileName, iOutputfileUnit,
 						iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
 	   // store the updated mole fractions.
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
@@ -166,6 +182,35 @@ int main()
 	iFlag = cpoutend (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
 				   dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
 				   iStringLength, dTemp, dTlast);
+/*	
+	CFMESS (sOutputfileName,(char *)"REPLACING SOME MOLE FRACTIONS WITH THOSE READ FROM THE TEST FILE:");
+	int i;
+	char *buffer = new char [50];
+	char *sName    = new char [ iStringLength + 1 ];		
+	for (i=0; i < iSpeciesCount; i++) {
+		//if (dTestMoleFractions[i] == 0.0) { dTestMoleFractions[i] = 1E-12; }
+		if (dTestMoleFractions[i] > 0.0) {
+			dMoleFractions[i] = dTestMoleFractions[i];
+			sscanf(sSpeciesNames+(i*iStringLength), "%s", sName);
+			sprintf(buffer,"%s\t%10.3e", sName, dMoleFractions[i]);
+			CFMESS (sOutputfileName,buffer);
+		}
+	}
+	delete [] buffer; delete [] sName;
+//*/
+	
+	CFMESS (sOutputfileName,(char *)"TRYING NONLINEAR SOLVE");
+	int iTempSpeciesCount = iSpeciesCount; // = 50
+	DNSQSOLVE(iTempSpeciesCount, dPres, dTemp, dMoleFractions,
+              iNitro, dFixedMoleFractions, iCKsizeD, iCKsizeI, dCKwork, iCKwork,
+              iOutputfileUnit, iState);
+	// store the updated mole fractions.
+	CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
+	// append the final solution to the Fortran output file
+	iFlag = cpoutend (sOutputfileName, iOutputfileUnit, iCKwork, dCKwork,
+					  dSolution, iSpeciesCount, sSpeciesNames, dMoleFractions,
+					  iStringLength, dTemp, dTlast);
+	
 	CFMESS (sOutputfileName,(char *)"CALCULATION COMPLETE");
 	
     CCCLOS (sOutputfileName);
@@ -213,8 +258,9 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 	   CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);
 	 after calling this function.
 	 
+	 Returns the index of Nitrogen in the arrays - IN C++ FORMAT (starting from 0)
 	 */
-	int iFlag=0;
+
 	FILE *fpOutfile = stdout;
 	if (!strstr(sOutputfileName,"stdout") && iOutputfileUnit != 6) {
 		// switch from Fortran to C++ formatted output file
@@ -243,13 +289,12 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 		}
 	}
 	if (iFound < 0) {
-		iFlag = 1; fprintf(fpOutfile, "%s\n", "Couldn't find N2 in species list.");
+		fprintf(fpOutfile, "%s\n", "Couldn't find N2 in species list.");
 	}
 	else {
 		dMoleFractions[iFound] = 1.0 - dTotal;
 	}
 	//fprintf(fpOutfile, "%s %10.3e\n", "N2 mole fraction should equal ",(1.0 - dTotal));
-	
 	// CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);  // get mass fractions, i.e set mole fractions
 	
 	delete [] sName;
@@ -261,9 +306,9 @@ int resetN2 (char *sOutputfileName, int iOutputfileUnit,
 				(char *)"FORMATTED",
 				(char *)"UNKNOWN", iOutputfileUnit, ifFlag);
 		if (ifFlag==0) ifFlag = CFEND (sOutputfileName); // go to end of output file
-		return max(iFlag,ifFlag);
+		//return max(iFlag,ifFlag);
 	}
-	return iFlag;
+	return iFound;
 }
 
 
@@ -284,6 +329,90 @@ int resetFixedMoleFractions( int iSpeciesCount,
 		}
 	}
 	//CKXTY(dMoleFractions, iCKwork, dCKwork, dSolution+1);  // get mass fractions, i.e set mole fractions
+	return iFlag;
+}
+
+
+int checkinp (char *sOutputfileName, int iOutputfileUnit,
+           char *sInputfileName,
+           int *iCKwork, double *dCKwork,
+           int iSpeciesCount, int iStringLength,
+           char *sSpeciesNames, double *dMoleFractions
+           )
+/* Read in the secondary input file (just a list of mole fractions) to check it 
+  in the optimizer */
+{  int iFlag=0;
+	FILE *fpInfile  = stdin;
+	FILE *fpOutfile = stdout;
+
+	if (!strstr(sOutputfileName,"stdin")) {
+		// open an input file
+		fpInfile = fopen(sInputfileName, "r");
+		if (!fpInfile) {
+			CFMESS(sOutputfileName, (char *)"Error opening input file...");
+			return 1;
+		}
+	}
+	if (!strstr(sOutputfileName,"stdout") && iOutputfileUnit != 6) {
+		// switch from Fortran to C++ formatted output file
+		CCCLOS(sOutputfileName);
+		fpOutfile = fopen(sOutputfileName, "a");
+	}
+	
+	// pressure (atm), temperature (K)
+	fprintf(fpOutfile, "%s\n",
+			"READING LIST OF MOLE FRACTIONS TO TEST");
+	// Initial non-zero moles
+	char *sReactant= new char [ iStringLength + 1 ];
+	char *sName    = new char [ iStringLength + 1 ];
+	int i,iFound; double dValue;
+	
+	while (strncmp(sReactant,"END",3) !=0 ) {
+		//fprintf(fpOutfile, "\n%s\n", "INPUT MOLES OF NEXT SPECIES");
+		fscanf(fpInfile, "%s", sReactant);
+		fprintf(fpOutfile, "%s", sReactant);
+		if (strncmp(sReactant,"END",3)!=0) {
+			fscanf(fpInfile, "%lf", &dValue);
+			fprintf(fpOutfile, " %10.3e\n", dValue);
+			// CKCOMP(sReactant, sSpeciesNames, iSpeciesCount, iSpeciesIndex);
+			i=0; iFound=-1;
+			while (iFound<0 && i<iSpeciesCount) {
+				sscanf(sSpeciesNames+(i*iStringLength), "%s", sName);
+				if (strcmp(sReactant, sName)==0) {
+					iFound = i;
+					dMoleFractions[iFound] = dValue;
+				}
+				i++;
+			}
+			if (iFound < 0) {
+				iFlag = 1; fprintf(fpOutfile, "%s %s\n", "Error reading moles... Couldn't find", sReactant);
+			}
+		}
+	}
+	fprintf(fpOutfile, "\n");
+
+/*
+	fprintf(fpOutfile, "%s","SAVED MOLE FRACTIONS");
+	fprintf(fpOutfile, "\n%s\t%s\n", "SPECIES", "MOLE FRACTION");
+	// print species names and mole fractions
+	for (i=0; i < iSpeciesCount; i++) {
+		sscanf(sSpeciesNames+(i*iStringLength), "%s", sName);
+		fprintf(fpOutfile, "%s\t%10.3e\n", sName, dMoleFractions[i]);
+	}
+*/
+	delete [] sName;
+
+	
+	if (fpInfile != stdin) fclose(fpInfile);     // done with input file
+	if (fpOutfile != stdout) {                   // switch to Fortran output
+		fflush(fpOutfile); fclose(fpOutfile);
+		int ifFlag=0;
+		CCOPEN (sOutputfileName,
+				(char *)"FORMATTED",
+				(char *)"UNKNOWN", iOutputfileUnit, ifFlag);
+		if (ifFlag==0) ifFlag = CFEND (sOutputfileName); // go to end of output file
+		return max(iFlag,ifFlag);
+	}
 	return iFlag;
 }
 
@@ -358,9 +487,10 @@ int cpinp (char *sOutputfileName, int iOutputfileUnit,
    delete [] sName;
 	
    // Reset the N2 mole fraction to make the total equal 1.0
-	iFlag = resetN2 (sOutputfileName, iOutputfileUnit, 
+	int iNitro;
+	iNitro = resetN2 (sOutputfileName, iOutputfileUnit, 
 					 iSpeciesCount, iStringLength, sSpeciesNames, dMoleFractions);
-	iFlag = resetN2 (sOutputfileName, iOutputfileUnit, 
+	iNitro = resetN2 (sOutputfileName, iOutputfileUnit, 
 					 iSpeciesCount, iStringLength, sSpeciesNames, dFixedMoleFractions);
 
    // Normalize the mole fractions

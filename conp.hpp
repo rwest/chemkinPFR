@@ -38,6 +38,12 @@ int cpoutend (char *sOutputfileName, int iOutputfileUnit,
 			  int *iCKwork, double *dCKwork, double *dSolution,
 			  int iSpeciesCount, char *sSpeciesNames, double *dMoleFractions,
 			  int iStringLength, double dTemp, double dTime);
+int checkinp (char *sOutputfileName, int iOutputfileUnit,
+			  char *sInputfileName,
+			  int *iCKwork, double *dCKwork,
+			  int iSpeciesCount, int iStringLength,
+			  char *sSpeciesNames, double *dMoleFractions
+			  );
 
 // Fortran function prototypes
 #if !defined( FORTRAN_FROM_CPLUSPLUS )
@@ -53,6 +59,11 @@ SUBROUTINE CPSOLVE(INTEGER& NKK, INTEGER& NNP, INTEGER& NNWT, INTEGER& NNH, INTE
                    INTEGER* IVODE, INTEGER& LIW, INTEGER& MF,
                    DOUBLE_PRECISION* RWORK, INTEGER* IWORK, INTEGER& LOUT,
                    INTEGER& ISTATE, DOUBLE_PRECISION* FIXEDMF);
+
+SUBROUTINE DNSQSOLVE(INTEGER& N, DOUBLE_PRECISION& PPRES, DOUBLE_PRECISION& TTEMP,
+					 DOUBLE_PRECISION* X, INTEGER& IINITRO, DOUBLE_PRECISION* FFIXEDMF,
+					 INTEGER& LRW, INTEGER& LIW, DOUBLE_PRECISION* RRWORK, INTEGER* IIWORK,
+					 INTEGER& LOUT, INTEGER& ISTATE );
 #else // F77_STUB_REQUIRED for unix platforms
 #if defined ( F77_APPEND_UNDERSCORE ) //some unix platforms require appended underscore
 SUBROUTINE_F77 cpsolve_ (int&, int&, int&, int&, int&,
@@ -75,6 +86,18 @@ SUBROUTINE CPSOLVE(INTEGER& NKK, INTEGER& NNP, INTEGER& NNWT, INTEGER& NNH, INTE
               IOPT, RVODE, LRW, IVODE, LIW, MF,
               RWORK, IWORK, LOUT, ISTATE, FIXEDMF); }
 
+SUBROUTINE_F77 dnsqsolve_ (int&, double&, double&, 
+						 double*, int&, double*,
+                         int&, int&, double*, int*, 
+						 int&, int&);
+SUBROUTINE DNSQSOLVE(INTEGER& N, DOUBLE_PRECISION& PPRES, DOUBLE_PRECISION& TTEMP,
+				   DOUBLE_PRECISION* X, INTEGER& IINITRO, DOUBLE_PRECISION* FFIXEDMF,
+                   INTEGER& LRW, INTEGER& LIW, DOUBLE_PRECISION* RRWORK, INTEGER* IIWORK,
+				   INTEGER& LOUT, INTEGER& ISTATE )
+{   dnsqsolve_ (N, PPRES, TTEMP, X, 
+				IINITRO, FFIXEDMF, LRW, LIW, RRWORK, IIWORK,
+				LOUT, ISTATE ); }
+
 #else // !defined( F77_APPEND_UNDERSCORE ); some unix platforms don't use underscore
 SUBROUTINE_F77 cpsolve (int&, int&, int&, int&, int&,
                          int&, double*, double&,
@@ -95,6 +118,18 @@ SUBROUTINE CPSOLVE(INTEGER& NKK, INTEGER& NNP, INTEGER& NNWT, INTEGER& NNH, INTE
 {   cpsolve (NKK, NNP, NNWT, NNH, NNWDOT, NEQ, Z, TT1, TT2, ITOL, RTOL, ATOL, ITASK,
               IOPT, RVODE, LRW, IVODE, LIW, MF,
               RWORK, IWORK, LOUT, ISTATE, FIXEDMF); }
+
+SUBROUTINE_F77 dnsqsolve (int&, double&, double&, 
+						   double*, int&, double*,
+						   int&, int&, double*, int*, 
+						   int&, int&);
+SUBROUTINE DNSQSOLVE(INTEGER& N, DOUBLE_PRECISION& PPRES, DOUBLE_PRECISION& TTEMP,
+					 DOUBLE_PRECISION* X, INTEGER& IINITRO, DOUBLE_PRECISION* FFIXEDMF,
+					 INTEGER& LRW, INTEGER& LIW, DOUBLE_PRECISION* RRWORK, INTEGER* IIWORK,
+					 INTEGER& LOUT, INTEGER& ISTATE )
+{   dnsqsolve (N, PPRES, TTEMP, X, 
+				IINITRO, FFIXEDMF, LRW, LIW, RRWORK, IIWORK,
+				LOUT, ISTATE ); }
 #endif
 #endif // !defined( F77_STUB_REQUIRED )
 #endif // !defined( __CONP_H__ )

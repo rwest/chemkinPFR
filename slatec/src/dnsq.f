@@ -690,8 +690,8 @@ C              TESTS FOR TERMINATION AND STRINGENT TOLERANCES.
 C
                IF (NFEV .GE. MAXFEV) INFO = 2
                IF (P1*MAX(P1*DELTA,PNORM) .LE. EPSMCH*XNORM) INFO = 3
-               IF (NSLOW2 .EQ. 5) INFO = 4
-               IF (NSLOW1 .EQ. 10) INFO = 5
+               IF (NSLOW2 .EQ. 1000) INFO = 4
+               IF (NSLOW1 .EQ. 2000) INFO = 5
 C     .........EXIT
                IF (INFO .NE. 0) GO TO 320
 C

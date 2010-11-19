@@ -11,6 +11,13 @@ C***********************************************************************END-HDR
      2                   LRW, IVODE, LIW, MF, RWORK, IWORK,
      3                   LOUT, ISTATE, FFIXEDMF)
 C
+C      CPSOLVE(iSpeciesCount, iPPtr, iWtPtr, iHPtr, iWdotPtr,
+C              iEquationCount, dSolution, dTstart, dTlast, iItol, dRtol,
+C              dAtol, iTask, iOpt, dODEwork, iODEsizeD,
+C              iODEwork, iODEsizeI, iMethodFlag, dCKwork, iCKwork,
+C              iOutputfileUnit, iState, dFixedMoleFractions);
+C
+C
 C     Interface to DVODE and FUN from the C++ driver program
 C
 C*****EXCLUDE-IF precision_quad precision_single
@@ -29,7 +36,7 @@ C*****END INCLUDE-IF precision_single
       NH   = NNH
       NWDOT= NNWDOT
       
-C Store the fixed species
+C Store the fixed species (AT MOST 128)
 C FIRST SET THEM ALL INDICES ZERO
       DO 10 K = 1, 128
         IFIXEDMF(K) = 0
@@ -82,12 +89,11 @@ C
 C Returns the mass density of the gas mixture given pressure, temperature(s) and mass fractions. RHO
       CALL CKRHOY (RPAR(NP), Z(1), Z(2), IPAR, RPAR, RHO)
 C Returns the mean specific heat at constant pressure. CPB
-      CALL CKCPBS (Z(1), Z(2), IPAR, RPAR, CPB)
+C (isothermal)      CALL CKCPBS (Z(1), Z(2), IPAR, RPAR, CPB)
 C Returns the molar production rates of the species given pressure, temperature(s) and mass fractions. WDOT(*)
       CALL CKWYP  (RPAR(NP), Z(1), Z(2), IPAR, RPAR, RPAR(NWDOT))
 C Returns the enthalpies in mass units. HMS(*)
-C isothermal so following line commented out:
-C      CALL CKHMS  (Z(1), IPAR, RPAR, RPAR(NH))
+C (isothermal)     CALL CKHMS  (Z(1), IPAR, RPAR, RPAR(NH))
 C
 C     Form governing equation
 C

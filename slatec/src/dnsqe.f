@@ -339,7 +339,7 @@ C***END PROLOGUE  DNSQE
      1     X(*), XTOL, ZERO
       EXTERNAL FCN, JAC
       SAVE FACTOR, ONE, ZERO
-      DATA FACTOR,ONE,ZERO /1.0D2,1.0D0,0.0D0/
+      DATA FACTOR,ONE,ZERO /1.0D-2,1.0D0,0.0D0/
 C     BEGIN BLOCK PERMITTING ...EXITS TO 20
 C***FIRST EXECUTABLE STATEMENT  DNSQE
          INFO = 0
@@ -355,10 +355,12 @@ C        CALL DNSQ.
 C
          MAXFEV = 100*(N + 1)
          IF (IOPT .EQ. 2) MAXFEV = 2*MAXFEV
+         MAXFEV = MAXFEV * 10
          XTOL = TOL
          ML = N - 1
          MU = N - 1
          EPSFCN = ZERO
+C        EPSFCN = TOL
          MODE = 2
          DO 10 J = 1, N
             WA(J) = ONE
