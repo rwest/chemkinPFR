@@ -115,6 +115,7 @@ int main()
        return iFlag;
     }
 	
+	/*
 	// read file of test amounts
     if ( iFlag = checkinp (sOutputfileName, iOutputfileUnit,
                         sTestInputfileName, iCKwork, dCKwork,
@@ -124,7 +125,8 @@ int main()
 		delete [] iCKwork; delete [] dCKwork;  delete [] sCKwork;
 		delete [] sSpeciesNames; delete [] dMoleFractions;
 		return iFlag;
-    }	
+    }
+	*/
 
 
     // initial conditions
